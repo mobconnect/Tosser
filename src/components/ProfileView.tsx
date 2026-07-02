@@ -2,17 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { auth } from '../lib/firebase';
 import { subscribeToUser, updateUserProfile } from '../lib/api';
-import { User, Save, Loader2, User as UserIcon, LogOut, Flame, Sparkles } from 'lucide-react';
+import { User, Save, Loader2, User as UserIcon, LogOut, Flame, Sparkles, BarChart3 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from './LanguageContext';
 import { COUNTRIES } from '../lib/countries';
 import { EnvironmentalImpact } from './EnvironmentalImpact';
 import { ComplianceHub } from './ComplianceHub';
+import { EnvironmentalInfographics } from './EnvironmentalInfographics';
 
 export const ProfileView: React.FC = () => {
   const [userData, setUserData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<'bio' | 'infographics'>('bio');
   const { country, setCountry, t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
@@ -88,7 +90,39 @@ export const ProfileView: React.FC = () => {
           <div className="flex-1 space-y-8">
             {!isEditing ? (
               <div className="space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Profile Sub-Tab Selector */}
+                <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-950 border border-zinc-900 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab('bio')}
+                    className={cn(
+                      "py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 select-none",
+                      activeSubTab === 'bio'
+                        ? "bg-zinc-900 border border-zinc-800 text-primary shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-300"
+                    )}
+                  >
+                    <UserIcon size={14} />
+                    <span>Bio Identity</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab('infographics')}
+                    className={cn(
+                      "py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 select-none",
+                      activeSubTab === 'infographics'
+                        ? "bg-zinc-900 border border-zinc-800 text-primary shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-300"
+                    )}
+                  >
+                    <BarChart3 size={14} />
+                    <span>Infographics Kit</span>
+                  </button>
+                </div>
+
+                {activeSubTab === 'bio' ? (
+                  <div className="space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Alias</p>
                     <p className="text-3xl font-bold text-white tracking-tight">{userData.name || t('anonymousAgent')}</p>
@@ -197,18 +231,22 @@ export const ProfileView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ecological Data Visualization Section */}
-                <EnvironmentalImpact />
+                    {/* Ecological Data Visualization Section */}
+                    <EnvironmentalImpact />
 
-                {/* Regulatory, Safety & Copyright Compliance Section */}
-                <ComplianceHub />
+                    {/* Regulatory, Safety & Copyright Compliance Section */}
+                    <ComplianceHub />
 
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="w-full py-4 bg-white text-black font-bold uppercase text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl hover:bg-zinc-100 cursor-pointer"
-                >
-                  {t('editProfile')}
-                </button>
+                    <button 
+                      onClick={() => setIsEditing(true)}
+                      className="w-full py-4 bg-white text-black font-bold uppercase text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-xl hover:bg-zinc-100 cursor-pointer"
+                    >
+                      {t('editProfile')}
+                    </button>
+                  </div>
+                ) : (
+                  <EnvironmentalInfographics />
+                )}
               </div>
             ) : (
               <div className="space-y-6">
