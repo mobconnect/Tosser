@@ -1,0 +1,78 @@
+{
+  "entities": {
+    "Report": {
+      "title": "Environmental Report",
+      "description": "A report of environmental neglect or littering.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "address": { "type": "string" }
+          }
+        },
+        "category": { "type": "string", "enum": ["litter", "illegal_dumping", "pollution", "vandalism", "other"] },
+        "impactScore": { "type": "number" },
+        "educationalTip": { "type": "string" },
+        "likeCount": { "type": "number" },
+        "dislikeCount": { "type": "number" },
+        "status": { "type": "string", "enum": ["reported", "analyzed", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "imageUrl", "location", "createdAt"]
+    },
+    "Swipe": {
+      "title": "Report Swipe",
+      "description": "A user's swipe interaction on a report.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["like", "dislike"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "type", "createdAt"]
+    },
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "age": { "type": "number" },
+        "pronouns": { "type": "string", "enum": ["he/him", "she/her", "they/them", "other"] },
+        "identity": { "type": "string", "enum": ["like", "dislike"] },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "points": { "type": "number" },
+        "totalLikes": { "type": "number" },
+        "totalDislikes": { "type": "number" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "reports": {
+      "schema": "Report",
+      "description": "Public reports of environmental neglect."
+    },
+    "reports/{reportId}/swipes": {
+      "schema": "Swipe",
+      "description": "User swipes on a report."
+    },
+    "users": {
+      "schema": "User",
+      "description": "Private user profiles."
+    }
+  }
+}

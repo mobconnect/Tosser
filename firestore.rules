@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Reports collection
+    match /reports/{reportId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && 
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasAll(['userId', 'imageUrl', 'location', 'createdAt', 'status']) &&
+        request.resource.data.imageUrl is string &&
+        request.resource.data.status == 'reported';
+      
+      allow update: if (isOwner(resource.data.userId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description', 'category', 'status', 'updatedAt', 'imageUrl']))
+        || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount', 'dislikeCount', 'updatedAt', 'tosserCount', 'tossitCount']));
+      
+      allow delete: if isOwner(resource.data.userId);
+
+      // Swipes subcollection
+      match /swipes/{userId} {
+        allow read: if isSignedIn();
+        allow create, update: if isOwner(userId) &&
+          request.resource.data.keys().hasAll(['userId', 'type', 'createdAt']) &&
+          (request.resource.data.type in ['like', 'dislike', 'tosser', 'tossit']);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+  }
+}

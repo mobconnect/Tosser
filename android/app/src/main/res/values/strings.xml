@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Brand Details -->
+    <string name="app_name">Tosser</string>
+    <string name="app_tagline">Spot the neglected, save the planet.</string>
+    <string name="app_description">Report environmental neglect, educate others on sustainability, and join a community dedicated to keeping our planet clean.</string>
+
+    <!-- Permissions Rationale Notifications -->
+    <string name="permission_camera_title">Camera Permission Required</string>
+    <string name="permission_camera_description">We need camera access to let you capture real-time evidence of environmental neglect to upload to the feed.</string>
+    <string name="permission_location_title">Location Permission Required</string>
+    <string name="permission_location_description">We need location access to map and pin the precise coordinates where environmental neglect was discovered.</string>
+    <string name="permission_storage_title">Storage Permission Required</string>
+    <string name="permission_storage_description">We need storage access to allow you to upload photos and save reports natively to your device.</string>
+
+    <!-- Navigation Bar & Tabs -->
+    <string name="nav_home">Home</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_swipe">Swipe Mode</string>
+    <string name="nav_archive">Archive Feed</string>
+
+    <!-- Sighting Submission Form -->
+    <string name="form_title_new_sighting">New Sighting</string>
+    <string name="form_subtitle">Log the violation. Impact the stats.</string>
+    <string name="form_placeholder_desc">Describe what you spotted in detail...</string>
+    <string name="form_upload_proof">Upload Proof</string>
+    <string name="form_upload_proof_sub">Tap to upload a photo of environmental neglect</string>
+    <string name="form_generate_visual">AI Create Visual</string>
+    <string name="form_generate_desc">or generate depiction</string>
+    <string name="form_additional_context">Additional Context</string>
+    <string name="form_btn_analyze">Analyze with Gemini Intelligence</string>
+    <string name="form_btn_submit">Submit Intelligence Log</string>
+    <string name="form_scanning_status">Analyzing environmental impact…</string>
+
+    <!-- Environmental Categories -->
+    <string name="category_litter">Litter</string>
+    <string name="category_illegal_dumping">Illegal Dumping</string>
+    <string name="category_pollution">Pollution</string>
+    <string name="category_vandalism">Vandalism</string>
+    <string name="category_other">Other</string>
+
+    <!-- Incident Detail Fields -->
+    <string name="report_meta_likes">Likes</string>
+    <string name="report_meta_dislikes">Dislikes</string>
+    <string name="report_impact_insight_title">Impact Insight</string>
+    <string name="report_btn_share">Share Report</string>
+    <string name="report_date_recently">Recently</string>
+    <string name="report_author_by">By %1$s</string>
+
+    <!-- Interactive Swipe Feed States -->
+    <string name="feed_empty_title">No Incidents Logged</string>
+    <string name="feed_empty_subtitle">Be the first to report environmental neglect</string>
+    <string name="feed_empty_action">Dispatch First Report</string>
+    <string name="feed_finished_title">Scanning Complete</string>
+    <string name="feed_finished_sub">You\'ve inspected all recent reports</string>
+    <string name="feed_btn_reset">Reset Feed</string>
+
+    <!-- User Profile & Bio Settings -->
+    <string name="profile_title">User Profile</string>
+    <string name="profile_subtitle">Identity verified. Bio-data updated.</string>
+    <string name="profile_avatar_id">User ID: %1$s</string>
+    <string name="profile_btn_logout">Logout Session</string>
+    <string name="profile_label_alias">Alias</string>
+    <string name="profile_label_age">Age</string>
+    <string name="profile_label_designation">Designation</string>
+    <string name="profile_label_orientation">Orientation</string>
+    <string name="profile_label_score">Global Score</string>
+    <string name="profile_btn_edit">Edit Profile</string>
+    <string name="profile_btn_cancel">Cancel</string>
+    <string name="profile_btn_save">Save Changes</string>
+    
+    <!-- System & Action Feedback -->
+    <string name="error_auth_failed">Authentication session lost. Please log in again.</string>
+    <string name="error_upload_failed">Upload process failed. Check your network coverage.</string>
+    <string name="error_invalid_input">Please provide valid details for all required fields.</string>
+</resources>

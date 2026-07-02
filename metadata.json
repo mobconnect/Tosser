@@ -1,0 +1,11 @@
+{
+  "name": "tosser",
+  "description": "Report environmental neglect, educate others on sustainability, and join a community dedicated to keeping our planet clean. Upload photos or generate AI depictions of littering and learn about the impact of waste.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
