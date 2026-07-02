@@ -14,6 +14,7 @@ export const ProfileView: React.FC = () => {
     age: '',
     pronouns: 'they/them',
     identity: 'like',
+    paypalLink: '',
   });
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export const ProfileView: React.FC = () => {
           age: data.age?.toString() || '',
           pronouns: data.pronouns || 'they/them',
           identity: data.identity || 'like',
+          paypalLink: data.paypalLink || '',
         });
       });
       return () => unsubscribe();
@@ -103,6 +105,21 @@ export const ProfileView: React.FC = () => {
                       {userData.identity === 'like' ? 'LIKE' : userData.identity === 'dislike' ? 'DISLIKE' : 'Undefined'}
                     </div>
                   </div>
+                  <div className="md:col-span-2 space-y-1">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Personalized PayPal Link</p>
+                    {userData.paypalLink ? (
+                      <a
+                        href={userData.paypalLink.startsWith('http') ? userData.paypalLink : (userData.paypalLink.includes('@') ? `https://www.paypal.com/paypalme/` : `https://paypal.me/${userData.paypalLink}`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-bold text-primary hover:underline flex items-center gap-1.5 break-all mt-1"
+                      >
+                        {userData.paypalLink}
+                      </a>
+                    ) : (
+                      <p className="text-xs text-zinc-500 italic mt-1">No PayPal link or email set yet. Edit profile to add one so other agents can pay or donate to you for picking up rubbish!</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 bg-zinc-950/50 p-6 rounded-2xl border border-zinc-800">
@@ -163,6 +180,19 @@ export const ProfileView: React.FC = () => {
                         <option value="other">Other</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 font-mono text-primary">Personalized PayPal Link / Email</label>
+                    <input 
+                      type="text" 
+                      value={formData.paypalLink}
+                      onChange={(e) => setFormData({ ...formData, paypalLink: e.target.value })}
+                      placeholder="e.g. paypal.me/yourusername or yourpaypalemail@domain.com"
+                      className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl focus:border-primary/50 outline-none text-white transition-all placeholder-zinc-600 text-xs"
+                    />
+                    <p className="text-[9px] text-zinc-500 uppercase tracking-wider px-2 leading-relaxed">
+                      Enter your PayPal.me link or address. Other agents can pay/donate directly to support your trash pickups!
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2">Bio-Identity</label>

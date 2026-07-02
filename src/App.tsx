@@ -8,15 +8,16 @@ import { AuthProvider } from './components/AuthProvider';
 import { ReportForm } from './components/ReportForm';
 import { ReportFeed } from './components/ReportFeed';
 import { ProfileView } from './components/ProfileView';
+import { Leaderboard } from './components/Leaderboard';
 import { subscribeToReports, subscribeToUser } from './lib/api';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { Leaf, Camera, LayoutGrid, GraduationCap, MapPin, User as UserIcon } from 'lucide-react';
+import { Leaf, Camera, LayoutGrid, GraduationCap, MapPin, User as UserIcon, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'profile'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'leaderboard'>('feed');
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [userPoints, setUserPoints] = useState(0);
@@ -76,6 +77,7 @@ export default function App() {
           <nav className="hidden md:flex flex-col border-r border-zinc-800 w-24 items-center py-10 gap-10 bg-zinc-950/50">
             {[
               { id: 'feed', icon: <LayoutGrid size={22} />, label: 'Home' },
+              { id: 'leaderboard', icon: <Trophy size={22} />, label: 'Leader' },
               { id: 'profile', icon: <UserIcon size={22} />, label: 'Profile' },
             ].map((tab) => (
               <button
@@ -110,6 +112,7 @@ export default function App() {
                 transition={{ duration: 0.2 }}
               >
                 {activeTab === 'feed' && <ReportFeed reports={reports} loading={loadingReports} />}
+                {activeTab === 'leaderboard' && <Leaderboard />}
                 {activeTab === 'profile' && <ProfileView />}
               </motion.div>
             </AnimatePresence>
@@ -139,6 +142,7 @@ export default function App() {
         <nav className="md:hidden sticky bottom-0 bg-zinc-900 border-t border-zinc-800 flex justify-around p-5 z-50 rounded-t-3xl shadow-2xl backdrop-blur-xl">
           {[
             { id: 'feed', icon: <LayoutGrid size={22} /> },
+            { id: 'leaderboard', icon: <Trophy size={22} /> },
             { id: 'profile', icon: <UserIcon size={22} /> },
           ].map((tab) => (
             <button

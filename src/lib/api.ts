@@ -1,4 +1,4 @@
-import { collection, serverTimestamp, query, orderBy, onSnapshot, doc, runTransaction, increment } from 'firebase/firestore';
+import { collection, serverTimestamp, query, orderBy, onSnapshot, doc, runTransaction, increment, limit, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from './firebase';
 
@@ -195,5 +195,65 @@ export const shareReport = async (report: any) => {
     if ((err as Error).name !== 'AbortError') {
       console.error("Share failed", err);
     }
+  }
+};
+
+export const subscribeToLeaderboard = (callback: (users: any[]) => void) => {
+  const q = query(collection(db, 'users'), orderBy('points', 'desc'), limit(50));
+  return onSnapshot(q, (snapshot) => {
+    const users = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+    callback(users);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.LIST, 'users');
+  });
+};
+
+export const getUserProfile = async (userId: string) => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (userDoc.exists()) {
+      return { uid: userDoc.id, ...userDoc.data() };
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, `users/${userId}`);
+  }
+};
+
+export const pickUpReport = async (reportId: string, proofImageUrl: string) => {
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const reportRef = doc(db, 'reports', reportId);
+    const userRef = doc(db, 'users', userId);
+
+    await runTransaction(db, async (transaction) => {
+      const reportSnap = await transaction.get(reportRef);
+      if (!reportSnap.exists()) {
+        throw new Error("Report does not exist");
+      }
+      const data = reportSnap.data();
+      if (data.status === 'picked_up') {
+        throw new Error("Already picked up!");
+      }
+
+      transaction.update(reportRef, {
+        status: 'picked_up',
+        resolverId: userId,
+        resolverName: auth.currentUser?.displayName || 'Anonymous Agent',
+        proofImageUrl: proofImageUrl,
+        pickedUpAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Reward 50 points to the resolver for picking it up!
+      transaction.update(userRef, {
+        points: increment(50)
+      });
+    });
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `reports/${reportId}`);
   }
 };

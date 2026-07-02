@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatDistanceToNow } from 'date-fns';
-import { MapPin, Info, AlertTriangle, ArrowRight, RotateCcw, LayoutGrid, Share2, Plus, X, Camera, Globe } from 'lucide-react';
+import { MapPin, Info, AlertTriangle, ArrowRight, RotateCcw, LayoutGrid, Share2, Plus, X, Camera, Globe, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SwipeCard } from './SwipeCard';
 import { ReportForm } from './ReportForm';
 import { ReportMap } from './ReportMap';
+import { ReportDetailModal } from './ReportDetailModal';
 import { swipeReport, shareReport } from '../lib/api';
 
 interface Report {
@@ -25,6 +26,11 @@ interface Report {
     lng?: number;
     address?: string;
   };
+  status?: string;
+  proofImageUrl?: string;
+  resolverId?: string;
+  resolverName?: string;
+  userId?: string;
 }
 
 export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({ reports, loading = false }) => {
@@ -32,6 +38,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
   const [viewMode, setViewMode] = useState<'swipe' | 'grid' | 'map'>('swipe');
   const [showReportForm, setShowReportForm] = useState(false);
   const [lastSwipe, setLastSwipe] = useState<'like' | 'dislike' | null>(null);
+  const [selectedReport, setSelectedReport] = useState<any | null>(null);
 
   const handleSwipe = async (type: 'like' | 'dislike') => {
     const report = reports[currentIndex];
@@ -251,16 +258,21 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
                 animate={{ opacity: 1 }}
                 className="bg-zinc-900/40 rounded-2xl overflow-hidden border border-zinc-800 hover:border-primary/50 transition-all group flex flex-col h-full relative"
               >
-                <div className="relative aspect-[4/3] overflow-hidden">
+                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img 
                     src={report.imageUrl} 
                     alt={report.title} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
-                  <div className="absolute top-3 left-3 z-30">
+                  <div className="absolute top-3 left-3 z-30 flex flex-col gap-1 items-start">
                     <span className="bg-zinc-900/80 backdrop-blur-md text-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md border border-white/10">
                       {report.category}
                     </span>
+                    {report.status === 'picked_up' && (
+                      <span className="bg-primary text-black px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-widest rounded-md border border-primary/20 shadow-md">
+                        CLEANED UP
+                      </span>
+                    )}
                   </div>
                   <div className="absolute top-3 right-3 z-30">
                     <div className={cn(
@@ -321,6 +333,28 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
                       </button>
                     </div>
                   </div>
+
+                  <button 
+                    onClick={() => setSelectedReport(report)}
+                    className={cn(
+                      "w-full py-3 rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer border mt-2",
+                      report.status === 'picked_up' 
+                        ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20" 
+                        : "bg-primary text-black hover:bg-primary/95 border-primary"
+                    )}
+                  >
+                    {report.status === 'picked_up' ? (
+                      <>
+                        <CheckCircle2 size={12} />
+                        Disposed • View Proof
+                      </>
+                    ) : (
+                      <>
+                        <Camera size={12} />
+                        Pick It Up • Proof
+                      </>
+                    )}
+                  </button>
                 </div>
               </motion.div>
             ))}
@@ -338,6 +372,24 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
           <ReportMap reports={reports} />
         </motion.div>
       )}
+
+      {/* Report Detail & Pick Up Modal */}
+      <AnimatePresence>
+        {selectedReport && (
+          <ReportDetailModal 
+            report={reports.find(r => r.id === selectedReport.id) || selectedReport} 
+            onClose={() => setSelectedReport(null)} 
+            onSuccess={() => {
+              const updated = reports.find(r => r.id === selectedReport.id);
+              if (updated) {
+                setSelectedReport(updated);
+              } else {
+                setSelectedReport(null);
+              }
+            }} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
