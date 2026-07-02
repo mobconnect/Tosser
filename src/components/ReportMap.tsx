@@ -17,6 +17,9 @@ interface Report {
   createdAt: any;
   likeCount?: number;
   dislikeCount?: number;
+  status?: string;
+  pickedUpAt?: any;
+  updatedAt?: any;
   location?: {
     lat?: number;
     lng?: number;
@@ -67,6 +70,31 @@ export const ReportMap: React.FC<ReportMapProps> = ({ reports }) => {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const hasFocusedGpsRef = useRef(false);
+
+  const isReportExpired = (report: Report) => {
+    if (report.status !== 'Cleaned' && report.status !== 'picked_up') {
+      return false;
+    }
+    const pickupDate = report.pickedUpAt?.toDate 
+      ? report.pickedUpAt.toDate() 
+      : report.pickedUpAt?.seconds 
+        ? new Date(report.pickedUpAt.seconds * 1000) 
+        : report.updatedAt?.toDate 
+          ? report.updatedAt.toDate() 
+          : report.updatedAt?.seconds 
+            ? new Date(report.updatedAt.seconds * 1000) 
+            : report.createdAt?.toDate
+              ? report.createdAt.toDate()
+              : report.createdAt?.seconds
+                ? new Date(report.createdAt.seconds * 1000)
+                : null;
+                
+    if (!pickupDate) return false;
+    const now = new Date();
+    const diffTime = now.getTime() - pickupDate.getTime();
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    return diffDays > 7;
+  };
 
   // Helper to compute Haversine distance
   const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -413,17 +441,27 @@ export const ReportMap: React.FC<ReportMapProps> = ({ reports }) => {
       // Draw the actual glow core
       pins.append('circle')
         .attr('r', d => 5 / Math.sqrt(zoomScale))
-        .attr('fill', d => d.impactScore >= 8 ? '#ef4444' : d.impactScore >= 5 ? '#f59e0b' : '#a3e635')
+        .attr('fill', d => {
+          if (d.status === 'Cleaned' || d.status === 'picked_up') {
+            return isReportExpired(d) ? '#52525b' : '#10b981'; // Faded gray for expired, emerald green for active cleaned
+          }
+          return d.impactScore >= 8 ? '#ef4444' : d.impactScore >= 5 ? '#f59e0b' : '#a3e635';
+        })
         .attr('stroke', '#09090b')
         .attr('stroke-width', 1.5 / Math.sqrt(zoomScale))
-        .attr('class', d => d.impactScore >= 8 ? 'glow-red' : 'glow-green');
+        .attr('class', d => {
+          if (d.status === 'Cleaned' || d.status === 'picked_up') {
+            return isReportExpired(d) ? 'glow-gray' : 'glow-green';
+          }
+          return d.impactScore >= 8 ? 'glow-red' : 'glow-green';
+        });
 
-      // Outer radar wave indicator for heavy severity reports
-      pins.filter(d => d.impactScore >= 7)
+      // Outer radar wave indicator for active threat levels or active cleanups
+      pins.filter(d => ((d.status !== 'Cleaned' && d.status !== 'picked_up') && d.impactScore >= 7) || ((d.status === 'Cleaned' || d.status === 'picked_up') && !isReportExpired(d)))
         .append('circle')
         .attr('r', d => 16 / Math.sqrt(zoomScale))
         .attr('fill', 'none')
-        .attr('stroke', d => d.impactScore >= 8 ? '#ef4444' : '#f59e0b')
+        .attr('stroke', d => d.status === 'Cleaned' || d.status === 'picked_up' ? '#10b981' : (d.impactScore >= 8 ? '#ef4444' : '#f59e0b'))
         .attr('stroke-width', 0.8)
         .attr('opacity', 0.4)
         .append('animate')

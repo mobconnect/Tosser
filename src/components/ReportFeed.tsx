@@ -32,6 +32,8 @@ interface Report {
   resolverId?: string;
   resolverName?: string;
   userId?: string;
+  pickedUpAt?: any;
+  updatedAt?: any;
 }
 
 export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({ reports, loading = false }) => {
@@ -40,10 +42,38 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
   const [showReportForm, setShowReportForm] = useState(false);
   const [lastSwipe, setLastSwipe] = useState<'like' | 'dislike' | null>(null);
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
+  const [showExpired, setShowExpired] = useState(false);
   const { t } = useLanguage();
 
+  const isReportExpired = (report: Report) => {
+    if (report.status !== 'Cleaned' && report.status !== 'picked_up') {
+      return false;
+    }
+    const pickupDate = report.pickedUpAt?.toDate 
+      ? report.pickedUpAt.toDate() 
+      : report.pickedUpAt?.seconds 
+        ? new Date(report.pickedUpAt.seconds * 1000) 
+        : report.updatedAt?.toDate 
+          ? report.updatedAt.toDate() 
+          : report.updatedAt?.seconds 
+            ? new Date(report.updatedAt.seconds * 1000) 
+            : report.createdAt?.toDate
+              ? report.createdAt.toDate()
+              : report.createdAt?.seconds
+                ? new Date(report.createdAt.seconds * 1000)
+                : null;
+                
+    if (!pickupDate) return false;
+    const now = new Date();
+    const diffTime = now.getTime() - pickupDate.getTime();
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    return diffDays > 7;
+  };
+
+  const activeReports = reports.filter(r => !isReportExpired(r) || showExpired);
+
   const handleSwipe = async (type: 'like' | 'dislike') => {
-    const report = reports[currentIndex];
+    const report = activeReports[currentIndex];
     if (report) {
       setLastSwipe(type);
       await swipeReport(report.id, type);
@@ -51,7 +81,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
     }
   };
 
-  const isFinished = currentIndex >= reports.length;
+  const isFinished = currentIndex >= activeReports.length;
 
   if (loading) {
     return (
@@ -98,18 +128,30 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
     );
   }
 
-  if (reports.length === 0 && !showReportForm) {
+  if (activeReports.length === 0 && !showReportForm) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-zinc-500 gap-4">
         <AlertTriangle size={32} className="text-primary/50 mb-2" />
-        <p className="text-lg font-bold text-white">No Incidents Logged</p>
-        <p className="text-sm">Be the first to report environmental neglect</p>
-        <button 
-          onClick={() => setShowReportForm(true)}
-          className="mt-6 py-3 px-8 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all cursor-pointer"
-        >
-          Dispatch First Report
-        </button>
+        <p className="text-lg font-bold text-white">No Active Incidents Logged</p>
+        <p className="text-sm">
+          {reports.length > 0 ? "All logged sightings are either resolved or older than 7 days." : "Be the first to report environmental neglect"}
+        </p>
+        <div className="flex gap-4 mt-6">
+          {reports.length > 0 && !showExpired && (
+            <button 
+              onClick={() => setShowExpired(true)}
+              className="py-3 px-6 bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold rounded-xl hover:bg-zinc-850 transition-all cursor-pointer"
+            >
+              Show Expired Cleanups
+            </button>
+          )}
+          <button 
+            onClick={() => setShowReportForm(true)}
+            className="py-3 px-8 bg-primary text-black font-bold rounded-xl hover:bg-primary/90 transition-all cursor-pointer"
+          >
+            {reports.length > 0 ? "Report New Sighting" : "Dispatch First Report"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -182,6 +224,42 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
         </div>
       )}
 
+      {/* Expiry / Active count banner */}
+      {!showReportForm && viewMode !== 'map' && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/80 gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wider">
+                Showing {activeReports.length} Active {activeReports.length === 1 ? 'Incident' : 'Incidents'}
+              </p>
+              <p className="text-[10px] text-zinc-500 font-mono mt-0.5 uppercase tracking-wider">
+                Resolved incidents older than 7 days automatically archive.
+              </p>
+            </div>
+          </div>
+          {reports.some(isReportExpired) && (
+            <button
+              onClick={() => {
+                setShowExpired(!showExpired);
+                setCurrentIndex(0); // Reset swipe index
+              }}
+              className={cn(
+                "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all border cursor-pointer select-none",
+                showExpired 
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/15" 
+                  : "bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white border-zinc-800"
+              )}
+            >
+              {showExpired ? "Hide Archived Cleanups" : "Show Archived Cleanups"}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Swipe Core Feed View */}
       {viewMode === 'swipe' && !showReportForm && (
         <div className="max-w-md mx-auto h-[640px] relative flex flex-col items-center justify-center">
@@ -207,7 +285,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
             ) : (
               <div className="w-full h-full relative">
                 {/* Stack Background Cards */}
-                {reports.slice(currentIndex + 1, currentIndex + 3).map((report, idx) => (
+                {activeReports.slice(currentIndex + 1, currentIndex + 3).map((report, idx) => (
                   <div 
                     key={report.id}
                     className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-3xl pointer-events-none"
@@ -220,8 +298,8 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
                 ))}
                 
                 <SwipeCard 
-                  key={reports[currentIndex].id}
-                  report={reports[currentIndex]} 
+                  key={activeReports[currentIndex].id}
+                  report={activeReports[currentIndex]} 
                   onSwipe={handleSwipe} 
                   custom={lastSwipe}
                 />
@@ -252,7 +330,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
       {viewMode === 'grid' && !showReportForm && (
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-            {reports.map((report) => (
+            {activeReports.map((report) => (
               <motion.div
                 key={report.id}
                 layout
