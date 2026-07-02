@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { useLanguage } from './LanguageContext';
 import { COUNTRIES } from '../lib/countries';
 import { EnvironmentalImpact } from './EnvironmentalImpact';
+import { ComplianceHub } from './ComplianceHub';
 
 export const ProfileView: React.FC = () => {
   const [userData, setUserData] = useState<any>(null);
@@ -198,6 +199,9 @@ export const ProfileView: React.FC = () => {
 
                 {/* Ecological Data Visualization Section */}
                 <EnvironmentalImpact />
+
+                {/* Regulatory, Safety & Copyright Compliance Section */}
+                <ComplianceHub />
 
                 <button 
                   onClick={() => setIsEditing(true)}

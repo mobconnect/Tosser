@@ -38,6 +38,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
+  const [safeConfirmed, setSafeConfirmed] = useState(false);
 
   // Geospatial states
   const [selectedCity, setSelectedCity] = useState(POPULAR_CITIES[0].name);
@@ -193,6 +194,16 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
               placeholder={t('descriptionPlaceholder')}
               className="w-full bg-zinc-900/50 border border-zinc-800 text-white p-6 rounded-2xl min-h-[120px] focus:border-primary/50 outline-none transition-all text-sm leading-relaxed"
             />
+            
+            {/* WHO Safety & Hazard Directive Banner */}
+            <div className="bg-amber-950/15 border border-amber-900/30 text-amber-400 p-4 rounded-2xl text-[11px] flex gap-3 items-start leading-relaxed">
+              <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+              <div>
+                <p className="font-bold uppercase tracking-wider text-[10px] mb-1">WHO Safety Directive</p>
+                <span>Please prioritize personal safety! Do not handle hazardous materials, biohazards, medical wastes, or sharp objects. Wear heavy-duty gloves and protective shoes if resolving litter sightings.</span>
+              </div>
+            </div>
+
             <button
               onClick={handleGenerateDepiction}
               disabled={isGenerating || !description}
@@ -344,10 +355,26 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                   </div>
                 </div>
 
+                {/* Safety & Compliance Confirmation Checkbox */}
+                <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-3xl space-y-3">
+                  <div className="flex items-start gap-3">
+                    <input
+                      id="safety-confirm"
+                      type="checkbox"
+                      checked={safeConfirmed}
+                      onChange={(e) => setSafeConfirmed(e.target.checked)}
+                      className="mt-1 accent-primary w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="safety-confirm" className="text-[11px] text-zinc-400 leading-relaxed select-none cursor-pointer">
+                      I confirm that this sighting involves <strong>no hazardous bio-materials or chemical threats</strong>, and I agree to comply with WHO community sanitation and local environmental safety guidelines.
+                    </label>
+                  </div>
+                </div>
+
                 <button
                   onClick={handleSubmit}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 bg-primary text-black py-4 px-6 font-bold uppercase text-base rounded-xl transition-all disabled:opacity-50 shadow-xl cursor-pointer"
+                  disabled={loading || !safeConfirmed}
+                  className="w-full flex items-center justify-center gap-3 bg-primary text-black py-4 px-6 font-bold uppercase text-base rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-xl cursor-pointer"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
                   {t('submitReport')}
