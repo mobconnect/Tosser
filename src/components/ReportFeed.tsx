@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatDistanceToNow } from 'date-fns';
-import { MapPin, Info, AlertTriangle, ArrowRight, RotateCcw, LayoutGrid, Share2, Plus, X, Camera, Globe, CheckCircle2 } from 'lucide-react';
+import { MapPin, Info, AlertTriangle, ArrowRight, RotateCcw, LayoutGrid, Share2, Plus, X, Camera, Globe, CheckCircle2, Search, Compass, Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { SwipeCard } from './SwipeCard';
 import { ReportForm } from './ReportForm';
@@ -45,6 +45,58 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
   const [showExpired, setShowExpired] = useState(false);
   const { t } = useLanguage();
 
+  // Search, Category and Geolocational Distance Filtering States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [distanceRadius, setDistanceRadius] = useState<number | 'All'>('All');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Haversine formula to compute distance in km
+  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const handleDetectUserLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser");
+      return;
+    }
+    setLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setLocating(false);
+        setDistanceRadius(15); // Friendly local default (15km)
+      },
+      (error) => {
+        console.warn("User geolocation error: ", error);
+        setLocationError("Permission denied or location unavailable.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('All');
+    setDistanceRadius('All');
+  };
+
   React.useEffect(() => {
     if (reports && reports.length > 0) {
       const params = new URLSearchParams(window.location.search);
@@ -85,8 +137,33 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
 
   const activeReports = reports.filter(r => !isReportExpired(r) || showExpired);
 
+  const filteredReports = activeReports.filter(report => {
+    const matchesSearch = 
+      report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (report.location?.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (report.category || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = 
+      selectedCategory === 'All' || 
+      (report.category || '').toLowerCase().includes(selectedCategory.toLowerCase());
+
+    let matchesDistance = true;
+    if (distanceRadius !== 'All' && userLocation && report.location?.lat && report.location?.lng) {
+      const distance = getDistanceKm(
+        userLocation.lat,
+        userLocation.lng,
+        report.location.lat,
+        report.location.lng
+      );
+      matchesDistance = distance <= distanceRadius;
+    }
+
+    return matchesSearch && matchesCategory && matchesDistance;
+  });
+
   const handleSwipe = async (type: 'like' | 'dislike') => {
-    const report = activeReports[currentIndex];
+    const report = filteredReports[currentIndex];
     if (report) {
       setLastSwipe(type);
       await swipeReport(report.id, type);
@@ -94,7 +171,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
     }
   };
 
-  const isFinished = currentIndex >= activeReports.length;
+  const isFinished = currentIndex >= filteredReports.length;
 
   if (loading) {
     return (
@@ -237,6 +314,137 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
         </div>
       )}
 
+      {/* Dynamic Search & Geolocational Filtering Panel */}
+      {!showReportForm && viewMode !== 'map' && (
+        <div className="bg-zinc-900/40 border border-zinc-800/80 p-5 rounded-3xl space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            {/* Search Input Bar */}
+            <div className="relative md:col-span-5">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-500 pointer-events-none">
+                <Search size={15} />
+              </span>
+              <input
+                type="text"
+                placeholder="Search description, titles, or coordinates..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentIndex(0); // Reset swipe index
+                }}
+                className="w-full bg-zinc-950/80 border border-zinc-800/50 focus:border-primary/50 text-white rounded-2xl pl-11 pr-4 py-3.5 text-xs outline-none transition-all placeholder:text-zinc-600 font-medium"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => { setSearchTerm(''); setCurrentIndex(0); }}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-500 hover:text-white"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Category Filter Selector */}
+            <div className="relative md:col-span-3">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-500 pointer-events-none">
+                <Filter size={14} />
+              </span>
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setCurrentIndex(0); // Reset swipe index
+                }}
+                className="w-full bg-zinc-950/80 border border-zinc-800/50 focus:border-primary/50 text-zinc-300 rounded-2xl pl-11 pr-4 py-3.5 text-xs outline-none transition-all cursor-pointer appearance-none font-bold uppercase tracking-wider"
+              >
+                <option value="All">All Categories</option>
+                <option value="Plastic">Plastic / Bottles</option>
+                <option value="Chemical">Chemical / Sewage</option>
+                <option value="Dumping">Fly-Tipping / Dumping</option>
+                <option value="Litter">Litter / General</option>
+              </select>
+            </div>
+
+            {/* Distance Filter Selector */}
+            <div className="relative md:col-span-4 flex gap-2">
+              {userLocation ? (
+                <div className="relative flex-1">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-500 pointer-events-none">
+                    <Compass size={14} className="text-primary animate-pulse" />
+                  </span>
+                  <select
+                    value={distanceRadius}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDistanceRadius(val === 'All' ? 'All' : Number(val));
+                      setCurrentIndex(0); // Reset swipe index
+                    }}
+                    className="w-full bg-zinc-950/80 border border-zinc-800/50 focus:border-primary/50 text-zinc-300 rounded-2xl pl-11 pr-4 py-3.5 text-xs outline-none transition-all cursor-pointer appearance-none font-bold uppercase tracking-wider"
+                  >
+                    <option value="All">All Distances</option>
+                    <option value="5">Within 5 km</option>
+                    <option value="15">Within 15 km</option>
+                    <option value="30">Within 30 km</option>
+                    <option value="100">Within 100 km</option>
+                  </select>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDetectUserLocation}
+                  disabled={locating}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-zinc-950/60 hover:bg-zinc-900 border border-zinc-800/50 hover:border-zinc-700 text-zinc-400 hover:text-white rounded-2xl text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 select-none"
+                >
+                  <Compass size={14} className={cn("text-primary", locating && "animate-spin")} />
+                  <span>{locating ? "Locating..." : "Enable Near Me"}</span>
+                </button>
+              )}
+
+              {/* Reset shortcut */}
+              {(searchTerm || selectedCategory !== 'All' || distanceRadius !== 'All') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetFilters();
+                    setCurrentIndex(0);
+                  }}
+                  className="px-3 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800/50 hover:border-zinc-700 text-zinc-500 hover:text-primary rounded-2xl transition-all cursor-pointer"
+                  title="Reset Filter Form"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Active Geolocation Coordinates Status */}
+          {userLocation && (
+            <div className="flex items-center justify-between text-[9px] text-zinc-500 font-mono px-1">
+              <span className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                Active GPS Anchorage: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setUserLocation(null);
+                  setDistanceRadius('All');
+                  setCurrentIndex(0);
+                }}
+                className="hover:text-rose-400 underline transition-colors font-bold cursor-pointer"
+              >
+                Disable GPS
+              </button>
+            </div>
+          )}
+
+          {locationError && (
+            <p className="text-[9px] text-rose-400/80 font-mono px-1">
+              ⚠️ {locationError} Please allow locations.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Expiry / Active count banner */}
       {!showReportForm && viewMode !== 'map' && (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-zinc-900/40 p-5 rounded-2xl border border-zinc-800/80 gap-3">
@@ -247,7 +455,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
             </span>
             <div>
               <p className="text-xs font-bold text-white uppercase tracking-wider">
-                Showing {activeReports.length} Active {activeReports.length === 1 ? 'Incident' : 'Incidents'}
+                Showing {filteredReports.length} Sighting{filteredReports.length === 1 ? '' : 's'} (out of {activeReports.length} total active)
               </p>
               <p className="text-[10px] text-zinc-500 font-mono mt-0.5 uppercase tracking-wider">
                 Resolved incidents older than 7 days automatically archive.
@@ -276,49 +484,67 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
       {/* Swipe Core Feed View */}
       {viewMode === 'swipe' && !showReportForm && (
         <div className="max-w-md mx-auto h-[640px] relative flex flex-col items-center justify-center">
-          <AnimatePresence>
-            {isFinished ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center space-y-6 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-10 rounded-2xl"
+          {filteredReports.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center space-y-4 bg-zinc-900/40 border border-zinc-850 p-10 rounded-3xl"
+            >
+              <Search size={32} className="mx-auto text-zinc-600" />
+              <h3 className="text-lg font-bold text-white uppercase tracking-tight">No Match Found</h3>
+              <p className="text-xs text-zinc-500">No reports matched your search, category or geolocational criteria.</p>
+              <button
+                onClick={resetFilters}
+                className="py-2.5 px-5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
               >
-                <RotateCcw size={40} className="mx-auto text-primary/60 animate-spin-slow" />
-                <div>
-                  <h3 className="text-xl font-bold tracking-tight">Scanning Complete</h3>
-                  <p className="text-sm text-zinc-500 mt-1">You've inspected all recent reports</p>
-                </div>
-                <button 
-                  onClick={() => setCurrentIndex(0)}
-                  className="w-full py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/95 transition-all cursor-pointer"
+                Clear Filters
+              </button>
+            </motion.div>
+          ) : (
+            <AnimatePresence>
+              {isFinished ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-center space-y-6 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 p-10 rounded-2xl"
                 >
-                  Reset Feed
-                </button>
-              </motion.div>
-            ) : (
-              <div className="w-full h-full relative">
-                {/* Stack Background Cards */}
-                {activeReports.slice(currentIndex + 1, currentIndex + 3).map((report, idx) => (
-                  <div 
-                    key={report.id}
-                    className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-3xl pointer-events-none"
-                    style={{ 
-                      zIndex: -idx,
-                      transform: `translateY(${ (idx + 1) * 8 }px) scale(${ 1 - (idx + 1) * 0.04 })`,
-                      opacity: 1 - (idx + 1) * 0.4
-                    }}
+                  <RotateCcw size={40} className="mx-auto text-primary/60 animate-spin-slow" />
+                  <div>
+                    <h3 className="text-xl font-bold tracking-tight">Scanning Complete</h3>
+                    <p className="text-sm text-zinc-500 mt-1">You've inspected all filtered reports</p>
+                  </div>
+                  <button 
+                    onClick={() => setCurrentIndex(0)}
+                    className="w-full py-3 bg-primary text-black font-bold rounded-xl hover:bg-primary/95 transition-all cursor-pointer"
+                  >
+                    Reset Feed
+                  </button>
+                </motion.div>
+              ) : (
+                <div className="w-full h-full relative">
+                  {/* Stack Background Cards */}
+                  {filteredReports.slice(currentIndex + 1, currentIndex + 3).map((report, idx) => (
+                    <div 
+                      key={report.id}
+                      className="absolute inset-0 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-3xl pointer-events-none"
+                      style={{ 
+                        zIndex: -idx,
+                        transform: `translateY(${ (idx + 1) * 8 }px) scale(${ 1 - (idx + 1) * 0.04 })`,
+                        opacity: 1 - (idx + 1) * 0.4
+                      }}
+                    />
+                  ))}
+                  
+                  <SwipeCard 
+                    key={filteredReports[currentIndex].id}
+                    report={filteredReports[currentIndex]} 
+                    onSwipe={handleSwipe} 
+                    custom={lastSwipe}
                   />
-                ))}
-                
-                <SwipeCard 
-                  key={activeReports[currentIndex].id}
-                  report={activeReports[currentIndex]} 
-                  onSwipe={handleSwipe} 
-                  custom={lastSwipe}
-                />
-              </div>
-            )}
-          </AnimatePresence>
+                </div>
+              )}
+            </AnimatePresence>
+          )}
 
           <div className="absolute bottom-[-10px] w-full flex justify-center gap-8 z-50 select-none">
              <button 
@@ -342,8 +568,25 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
       {/* Grid Archive Archive Feed View */}
       {viewMode === 'grid' && !showReportForm && (
         <div className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-            {activeReports.map((report) => (
+          {filteredReports.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center space-y-4 bg-zinc-900/40 border border-zinc-850 py-16 rounded-3xl"
+            >
+              <Search size={32} className="mx-auto text-zinc-600" />
+              <h3 className="text-lg font-bold text-white uppercase tracking-tight">No Match Found</h3>
+              <p className="text-xs text-zinc-500">No reports matched your search, category or geolocational criteria.</p>
+              <button
+                onClick={resetFilters}
+                className="py-2.5 px-5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
+              >
+                Clear Filters
+              </button>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+              {filteredReports.map((report) => (
               <motion.div
                 key={report.id}
                 layout
@@ -452,6 +695,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
               </motion.div>
             ))}
           </div>
+         )}
         </div>
       )}
 

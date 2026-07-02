@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { COUNTRIES } from './lib/countries';
 import { PaypalQrWidget } from './components/PaypalQrWidget';
+import { EnvironmentalEmergencyButton } from './components/EnvironmentalEmergencyButton';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'leaderboard'>('feed');
@@ -61,6 +62,9 @@ function AppContent() {
         
         <div className="flex flex-col md:items-end gap-3 w-full md:w-auto">
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 self-center md:self-end">
+            {/* Environmental Emergency response trigger */}
+            <EnvironmentalEmergencyButton />
+
             {/* Country Selector Selector dropdown */}
             <div className="relative z-40">
               <button
