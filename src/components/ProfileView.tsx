@@ -6,6 +6,7 @@ import { User, Save, Loader2, User as UserIcon, LogOut, Flame, Sparkles } from '
 import { cn } from '../lib/utils';
 import { useLanguage } from './LanguageContext';
 import { COUNTRIES } from '../lib/countries';
+import { EnvironmentalImpact } from './EnvironmentalImpact';
 
 export const ProfileView: React.FC = () => {
   const [userData, setUserData] = useState<any>(null);
@@ -194,6 +195,9 @@ export const ProfileView: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Ecological Data Visualization Section */}
+                <EnvironmentalImpact />
 
                 <button 
                   onClick={() => setIsEditing(true)}
