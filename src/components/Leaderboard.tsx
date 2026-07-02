@@ -4,11 +4,13 @@ import { subscribeToLeaderboard } from '../lib/api';
 import { auth } from '../lib/firebase';
 import { Trophy, Crown, Medal, Award, Search, User as UserIcon, Sparkles, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useLanguage } from './LanguageContext';
 
 export const Leaderboard: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useLanguage();
 
   useEffect(() => {
     const unsubscribe = subscribeToLeaderboard((data) => {
@@ -41,14 +43,14 @@ export const Leaderboard: React.FC = () => {
   const podiumUsers = getPodiumSorted();
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-20">
+    <div className="max-w-3xl mx-auto space-y-8 pb-20 bg-zinc-950">
       {/* Header section */}
       <div className="text-center space-y-2 mb-8">
         <h2 className="text-4xl font-bold tracking-tight text-white uppercase flex items-center justify-center gap-3">
           <Trophy className="text-primary animate-pulse" size={36} />
-          Leaderboard
+          {t('topAgents')}
         </h2>
-        <p className="text-zinc-500 text-sm">Environmental Resistance. Track the leading agents driving real impact.</p>
+        <p className="text-zinc-500 text-sm">{t('ecoImpactRankings')}</p>
       </div>
 
       {/* Current User Standing Banner */}
@@ -65,13 +67,13 @@ export const Leaderboard: React.FC = () => {
             <div>
               <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Your Resistance Rank</p>
               <h4 className="text-xl font-bold text-white uppercase mt-0.5">
-                Agent <span className="text-primary font-mono font-black">#{currentUserRank}</span> — {currentUserData.name || 'Anonymous'}
+                Agent <span className="text-primary font-mono font-black">#{currentUserRank}</span> — {currentUserData.name || t('anonymousAgent')}
               </h4>
             </div>
           </div>
           <div className="flex items-center gap-6">
             <div className="text-center sm:text-right">
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Your Points</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{t('points')}</p>
               <p className="text-2xl font-black text-white font-mono">{currentUserData.points || 0}</p>
             </div>
             <div className="h-8 w-[1px] bg-zinc-800 hidden sm:block" />
@@ -91,7 +93,7 @@ export const Leaderboard: React.FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search resistance agents by alias..."
-          className="w-full bg-zinc-900/60 border border-zinc-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder-zinc-600 outline-none focus:border-primary/50 transition-all shadow-lg"
+          className="w-full bg-zinc-900/60 border border-zinc-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-white placeholder-zinc-600 outline-none focus:border-primary/50 transition-all shadow-lg text-sm"
         />
       </div>
 
@@ -155,10 +157,10 @@ export const Leaderboard: React.FC = () => {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         {rankIcon}
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Rank {rank}</span>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">{t('agentRank')} {rank}</span>
                       </div>
                       <div className={cn("px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full border", badgeColor)}>
-                        {user.points || 0} pts
+                        {user.points || 0} {t('pointsShort')}
                       </div>
                     </div>
 
@@ -180,7 +182,7 @@ export const Leaderboard: React.FC = () => {
                       </div>
                       <div className="space-y-0.5">
                         <h3 className="font-bold text-white text-base tracking-tight truncate max-w-[180px]">
-                          {user.name || 'Anonymous Agent'}
+                          {user.name || t('anonymousAgent')}
                         </h3>
                         <p className="text-[10px] text-zinc-500 uppercase font-semibold">{user.pronouns || 'they/them'}</p>
                       </div>
@@ -248,7 +250,7 @@ export const Leaderboard: React.FC = () => {
                       <div className="truncate">
                         <div className="flex items-center gap-2">
                           <h4 className="font-bold text-white text-sm truncate max-w-[150px] sm:max-w-xs">
-                            {user.name || 'Anonymous Agent'}
+                            {user.name || t('anonymousAgent')}
                           </h4>
                           {isCurrentUser && (
                             <span className="bg-primary/20 text-primary border border-primary/30 px-1.5 py-0.5 text-[8px] font-bold uppercase rounded">
@@ -281,7 +283,7 @@ export const Leaderboard: React.FC = () => {
 
                       <div className="text-right shrink-0">
                         <span className="font-mono text-sm font-black text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-xl inline-block min-w-[70px] text-center">
-                          {user.points || 0} pt
+                          {user.points || 0} {t('pointsShort')}
                         </span>
                       </div>
                     </div>

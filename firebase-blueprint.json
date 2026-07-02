@@ -56,6 +56,10 @@
         "points": { "type": "number" },
         "totalLikes": { "type": "number" },
         "totalDislikes": { "type": "number" },
+        "paypalLink": { "type": "string" },
+        "currentStreak": { "type": "number" },
+        "longestStreak": { "type": "number" },
+        "lastPickupDate": { "type": "string" },
         "joinedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email"]

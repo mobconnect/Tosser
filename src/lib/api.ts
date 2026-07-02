@@ -220,7 +220,7 @@ export const getUserProfile = async (userId: string) => {
   }
 };
 
-export const pickUpReport = async (reportId: string, proofImageUrl: string) => {
+export const pickUpReport = async (reportId: string, proofImageUrl: string, paypalLink?: string) => {
   try {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error("User not authenticated");
@@ -234,12 +234,58 @@ export const pickUpReport = async (reportId: string, proofImageUrl: string) => {
         throw new Error("Report does not exist");
       }
       const data = reportSnap.data();
-      if (data.status === 'picked_up') {
+      if (data.status === 'picked_up' || data.status === 'Cleaned') {
         throw new Error("Already picked up!");
       }
 
+      const userSnap = await transaction.get(userRef);
+      let currentStreak = 0;
+      let longestStreak = 0;
+      let lastPickupDate = '';
+
+      if (userSnap.exists()) {
+        const uData = userSnap.data();
+        currentStreak = uData.currentStreak || 0;
+        longestStreak = uData.longestStreak || 0;
+        lastPickupDate = uData.lastPickupDate || '';
+      }
+
+      // Helper function to get local date string YYYY-MM-DD
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+
+      if (lastPickupDate === todayStr) {
+        // Already did a pickup today, streak is unchanged
+      } else {
+        // Check if yesterday
+        let isConsecutive = false;
+        if (lastPickupDate) {
+          const todayDate = new Date(todayStr);
+          const prevDate = new Date(lastPickupDate);
+          const diffTime = todayDate.getTime() - prevDate.getTime();
+          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            isConsecutive = true;
+          }
+        }
+
+        if (isConsecutive) {
+          currentStreak += 1;
+        } else {
+          currentStreak = 1;
+        }
+
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+        }
+        lastPickupDate = todayStr;
+      }
+
       transaction.update(reportRef, {
-        status: 'picked_up',
+        status: 'Cleaned',
         resolverId: userId,
         resolverName: auth.currentUser?.displayName || 'Anonymous Agent',
         proofImageUrl: proofImageUrl,
@@ -247,10 +293,18 @@ export const pickUpReport = async (reportId: string, proofImageUrl: string) => {
         updatedAt: serverTimestamp(),
       });
 
-      // Reward 50 points to the resolver for picking it up!
-      transaction.update(userRef, {
-        points: increment(50)
-      });
+      const userUpdates: any = {
+        points: increment(50),
+        currentStreak: currentStreak,
+        longestStreak: longestStreak,
+        lastPickupDate: lastPickupDate,
+      };
+
+      if (paypalLink) {
+        userUpdates.paypalLink = paypalLink;
+      }
+
+      transaction.update(userRef, userUpdates);
     });
     return true;
   } catch (error) {

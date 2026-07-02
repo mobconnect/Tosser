@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AuthProvider } from './components/AuthProvider';
+import { LanguageProvider, useLanguage, LANGUAGES } from './components/LanguageContext';
 import { ReportForm } from './components/ReportForm';
 import { ReportFeed } from './components/ReportFeed';
 import { ProfileView } from './components/ProfileView';
@@ -12,15 +13,17 @@ import { Leaderboard } from './components/Leaderboard';
 import { subscribeToReports, subscribeToUser } from './lib/api';
 import { auth, db } from './lib/firebase';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { Leaf, Camera, LayoutGrid, GraduationCap, MapPin, User as UserIcon, Trophy } from 'lucide-react';
+import { Leaf, Camera, LayoutGrid, GraduationCap, MapPin, User as UserIcon, Trophy, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 
-export default function App() {
+function AppContent() {
   const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'leaderboard'>('feed');
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [userPoints, setUserPoints] = useState(0);
+  const { language, setLanguage, t } = useLanguage();
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToReports((data) => {
@@ -44,120 +47,175 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-primary/30 flex flex-col">
-        {/* Navigation / Header */}
-        <header className="flex flex-col md:flex-row justify-between items-center border-b border-zinc-800 p-8 py-10 gap-6">
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white uppercase">Tosser</h1>
-            <p className="text-sm text-zinc-500 mt-2 font-medium">The Environmental Resistance. Swiping for shift.</p>
-          </div>
-          
-          <div className="flex flex-col md:items-end gap-3">
-            <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1 text-[10px] font-bold uppercase rounded-full inline-block self-center md:self-end">
-              {reports.length} Incidents Logged
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col items-center md:items-end">
-                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Global Score</span>
-                 <span className="font-bold text-white text-2xl">{userPoints}</span>
-              </div>
-              <button 
-                onClick={() => setActiveTab('profile')}
-                className="w-12 h-12 rounded-full border border-zinc-800 overflow-hidden shadow-lg hover:border-primary transition-all p-0.5"
-              >
-                <img src={auth.currentUser?.photoURL || ''} alt="User" className="w-full h-full object-cover rounded-full" />
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-          {/* Side Nav for desktop */}
-          <nav className="hidden md:flex flex-col border-r border-zinc-800 w-24 items-center py-10 gap-10 bg-zinc-950/50">
-            {[
-              { id: 'feed', icon: <LayoutGrid size={22} />, label: 'Home' },
-              { id: 'leaderboard', icon: <Trophy size={22} />, label: 'Leader' },
-              { id: 'profile', icon: <UserIcon size={22} />, label: 'Profile' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={cn(
-                  "p-4 transition-all relative group flex flex-col items-center gap-2",
-                  activeTab === tab.id ? "text-primary" : "text-zinc-600 hover:text-white"
-                )}
-              >
-                {tab.icon}
-                <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">
-                  {tab.label}
-                </span>
-                {activeTab === tab.id && (
-                  <motion.div 
-                    layoutId="activeTab"
-                    className="absolute right-0 top-1/4 bottom-1/4 w-1 bg-primary rounded-l-full" 
-                  />
-                )}
-              </button>
-            ))}
-          </nav>
-
-          <main className="flex-1 overflow-y-auto p-6 md:p-12">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                {activeTab === 'feed' && <ReportFeed reports={reports} loading={loadingReports} />}
-                {activeTab === 'leaderboard' && <Leaderboard />}
-                {activeTab === 'profile' && <ProfileView />}
-              </motion.div>
-            </AnimatePresence>
-          </main>
+    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-primary/30 flex flex-col">
+      {/* Navigation / Header */}
+      <header className="flex flex-col md:flex-row justify-between items-center border-b border-zinc-800 p-8 py-10 gap-6">
+        <div className="text-center md:text-left">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white uppercase">{t('tosser')}</h1>
+          <p className="text-sm text-zinc-500 mt-2 font-medium">{t('tagline')}</p>
         </div>
+        
+        <div className="flex flex-col md:items-end gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 self-center md:self-end">
+            {/* Language Selector Selector dropdown */}
+            <div className="relative z-40">
+              <button
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Globe size={13} className="text-primary" />
+                <span>{LANGUAGES.find(l => l.code === language)?.flag} {LANGUAGES.find(l => l.code === language)?.name}</span>
+              </button>
+              
+              <AnimatePresence>
+                {isLangMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsLangMenuOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-48 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-20 space-y-1"
+                    >
+                      {LANGUAGES.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            setLanguage(lang.code);
+                            setIsLangMenuOpen(false);
+                          }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer",
+                            language === lang.code 
+                              ? "bg-primary/10 text-primary" 
+                              : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                          )}
+                        >
+                          <span>{lang.flag} {lang.name}</span>
+                          {language === lang.code && <span className="text-[10px] uppercase tracking-widest font-black">Active</span>}
+                        </button>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
 
-        {/* Footer Ticker */}
-        <footer className="h-10 border-t border-zinc-800 bg-zinc-900/50 backdrop-blur-md text-zinc-500 flex items-center overflow-hidden whitespace-nowrap text-[9px] font-bold uppercase tracking-widest">
-          <div className="flex space-x-12 animate-marquee">
-            <span className="px-4">Stop The Toss</span>
-            <span className="px-4 text-white">Action = Impact</span>
-            <span className="px-4">{reports.length} Flagged</span>
-            <span className="px-4 text-primary">Join the resistance</span>
-            <span className="px-4 text-white">Keep it clean</span>
-            <span className="px-4">Stop Lumping It</span>
-            {/* Duplicate for seamless marquee */}
-            <span className="px-4">Stop The Toss</span>
-            <span className="px-4 text-white">Action = Impact</span>
-            <span className="px-4">{reports.length} Flagged</span>
-            <span className="px-4 text-primary">Join the resistance</span>
-            <span className="px-4 text-white">Keep it clean</span>
-            <span className="px-4">Stop Lumping It</span>
+            <div className="bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 text-[10px] font-bold uppercase rounded-full">
+              {reports.length} {t('incidentsLogged')}
+            </div>
           </div>
-        </footer>
 
-        {/* Mobile Nav */}
-        <nav className="md:hidden sticky bottom-0 bg-zinc-900 border-t border-zinc-800 flex justify-around p-5 z-50 rounded-t-3xl shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center justify-center md:justify-end gap-6 w-full md:w-auto mt-1 md:mt-0">
+            <div className="flex flex-col items-center md:items-end">
+               <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">{t('globalScore')}</span>
+               <span className="font-bold text-white text-2xl">{userPoints}</span>
+            </div>
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className="w-12 h-12 rounded-full border border-zinc-800 overflow-hidden shadow-lg hover:border-primary transition-all p-0.5 cursor-pointer"
+            >
+              <img src={auth.currentUser?.photoURL || ''} alt="User" className="w-full h-full object-cover rounded-full" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Side Nav for desktop */}
+        <nav className="hidden md:flex flex-col border-r border-zinc-800 w-24 items-center py-10 gap-10 bg-zinc-950/50">
           {[
-            { id: 'feed', icon: <LayoutGrid size={22} /> },
-            { id: 'leaderboard', icon: <Trophy size={22} /> },
-            { id: 'profile', icon: <UserIcon size={22} /> },
+            { id: 'feed', icon: <LayoutGrid size={22} />, label: t('home') },
+            { id: 'leaderboard', icon: <Trophy size={22} />, label: t('leader') },
+            { id: 'profile', icon: <UserIcon size={22} />, label: t('profile') },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "p-2 transition-all rounded-full",
-                activeTab === tab.id ? "text-primary bg-primary/10" : "text-zinc-600"
+                "p-4 transition-all relative group flex flex-col items-center gap-2 cursor-pointer w-full",
+                activeTab === tab.id ? "text-primary" : "text-zinc-600 hover:text-white"
               )}
             >
               {tab.icon}
+              <span className="text-[9px] font-bold uppercase tracking-wider opacity-60">
+                {tab.label}
+              </span>
+              {activeTab === tab.id && (
+                <motion.div 
+                  layoutId="activeTab"
+                  className="absolute right-0 top-1/4 bottom-1/4 w-1 bg-primary rounded-l-full" 
+                />
+              )}
             </button>
           ))}
         </nav>
+
+        <main className="flex-1 overflow-y-auto p-6 md:p-12">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'feed' && <ReportFeed reports={reports} loading={loadingReports} />}
+              {activeTab === 'leaderboard' && <Leaderboard />}
+              {activeTab === 'profile' && <ProfileView />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
+
+      {/* Footer Ticker */}
+      <footer className="h-10 border-t border-zinc-800 bg-zinc-900/50 backdrop-blur-md text-zinc-500 flex items-center overflow-hidden whitespace-nowrap text-[9px] font-bold uppercase tracking-widest">
+        <div className="flex space-x-12 animate-marquee">
+          <span className="px-4">{t('tickerStop')}</span>
+          <span className="px-4 text-white">{t('tickerAction')}</span>
+          <span className="px-4">{reports.length} {t('tickerFlagged')}</span>
+          <span className="px-4 text-primary">{t('tickerJoin')}</span>
+          <span className="px-4 text-white">{t('tickerClean')}</span>
+          <span className="px-4">{t('tickerStopLumping')}</span>
+          {/* Duplicate for seamless marquee */}
+          <span className="px-4">{t('tickerStop')}</span>
+          <span className="px-4 text-white">{t('tickerAction')}</span>
+          <span className="px-4">{reports.length} {t('tickerFlagged')}</span>
+          <span className="px-4 text-primary">{t('tickerJoin')}</span>
+          <span className="px-4 text-white">{t('tickerClean')}</span>
+          <span className="px-4">{t('tickerStopLumping')}</span>
+        </div>
+      </footer>
+
+      {/* Mobile Nav */}
+      <nav className="md:hidden sticky bottom-0 bg-zinc-900 border-t border-zinc-800 flex justify-around p-5 z-50 rounded-t-3xl shadow-2xl backdrop-blur-xl">
+        {[
+          { id: 'feed', icon: <LayoutGrid size={22} /> },
+          { id: 'leaderboard', icon: <Trophy size={22} /> },
+          { id: 'profile', icon: <UserIcon size={22} /> },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={cn(
+              "p-2 transition-all rounded-full cursor-pointer",
+              activeTab === tab.id ? "text-primary bg-primary/10" : "text-zinc-600"
+            )}
+          >
+            {tab.icon}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
     </AuthProvider>
   );
 }

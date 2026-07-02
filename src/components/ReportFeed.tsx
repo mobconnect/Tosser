@@ -8,6 +8,7 @@ import { ReportForm } from './ReportForm';
 import { ReportMap } from './ReportMap';
 import { ReportDetailModal } from './ReportDetailModal';
 import { swipeReport, shareReport } from '../lib/api';
+import { useLanguage } from './LanguageContext';
 
 interface Report {
   id: string;
@@ -39,6 +40,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
   const [showReportForm, setShowReportForm] = useState(false);
   const [lastSwipe, setLastSwipe] = useState<'like' | 'dislike' | null>(null);
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
+  const { t } = useLanguage();
 
   const handleSwipe = async (type: 'like' | 'dislike') => {
     const report = reports[currentIndex];
@@ -137,7 +139,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
             <X size={24} />
           </button>
           <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white uppercase">New Sighting</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-white uppercase">{t('reportLitter')}</h2>
             <p className="text-sm text-zinc-500 mt-2">Log the violation. Impact the stats.</p>
           </div>
           <ReportForm onSuccess={() => setShowReportForm(false)} />
@@ -149,7 +151,7 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-900 pb-6 gap-4 select-none">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-white uppercase">
-              {viewMode === 'swipe' ? 'Swipe Core' : viewMode === 'grid' ? 'Archive Feed' : 'Geographic Radar'}
+              {viewMode === 'swipe' ? t('swipeTitle') : viewMode === 'grid' ? 'Archive Feed' : 'Geographic Radar'}
             </h2>
             <p className="text-xs text-zinc-500 mt-1 font-medium select-none">
               {viewMode === 'swipe' ? 'Verify logged reports of local environmental neglect.' : viewMode === 'grid' ? 'Browse the list of logged environmental data.' : 'Visual clustering of planetary impact scores.'}
@@ -268,9 +270,9 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
                     <span className="bg-zinc-900/80 backdrop-blur-md text-white px-2 py-1 text-[9px] font-bold uppercase tracking-wider rounded-md border border-white/10">
                       {report.category}
                     </span>
-                    {report.status === 'picked_up' && (
+                    {(report.status === 'picked_up' || report.status === 'Cleaned') && (
                       <span className="bg-primary text-black px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-widest rounded-md border border-primary/20 shadow-md">
-                        CLEANED UP
+                        {t('cleanedUp')}
                       </span>
                     )}
                   </div>
@@ -338,20 +340,20 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
                     onClick={() => setSelectedReport(report)}
                     className={cn(
                       "w-full py-3 rounded-xl font-bold uppercase text-[9px] tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer border mt-2",
-                      report.status === 'picked_up' 
+                      (report.status === 'picked_up' || report.status === 'Cleaned')
                         ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20" 
                         : "bg-primary text-black hover:bg-primary/95 border-primary"
                     )}
                   >
-                    {report.status === 'picked_up' ? (
+                    {(report.status === 'picked_up' || report.status === 'Cleaned') ? (
                       <>
                         <CheckCircle2 size={12} />
-                        Disposed • View Proof
+                        {t('disposedViewProof')}
                       </>
                     ) : (
                       <>
                         <Camera size={12} />
-                        Pick It Up • Proof
+                        {t('pickItUpProof')}
                       </>
                     )}
                   </button>

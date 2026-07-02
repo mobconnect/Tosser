@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { X, Camera, CheckCircle2, DollarSign, ExternalLink, Sparkles, User, AlertTriangle, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { uploadImage, pickUpReport, getUserProfile } from '../lib/api';
+import { useLanguage } from './LanguageContext';
 
 interface ReportDetailModalProps {
   report: any;
@@ -12,6 +13,7 @@ interface ReportDetailModalProps {
 
 export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, onClose, onSuccess }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
   
   // Profiles
   const [reporterProfile, setReporterProfile] = useState<any>(null);
@@ -23,17 +25,25 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [donationAmount, setDonationAmount] = useState('5.00');
+  const [paypalLink, setPaypalLink] = useState('');
 
   useEffect(() => {
     const fetchProfiles = async () => {
       setLoadingProfiles(true);
       try {
+        const currentUid = auth.currentUser?.uid;
+        if (currentUid) {
+          const cur: any = await getUserProfile(currentUid);
+          if (cur && cur.paypalLink) {
+            setPaypalLink(cur.paypalLink);
+          }
+        }
         if (report.userId) {
-          const rep = await getUserProfile(report.userId);
+          const rep: any = await getUserProfile(report.userId);
           setReporterProfile(rep);
         }
         if (report.resolverId) {
-          const res = await getUserProfile(report.resolverId);
+          const res: any = await getUserProfile(report.resolverId);
           setResolverProfile(res);
         }
       } catch (err) {
@@ -64,7 +74,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
     try {
       const path = `proofs/${report.id}_${Date.now()}_proof.jpg`;
       const proofUrl = await uploadImage(selectedFile, path);
-      await pickUpReport(report.id, proofUrl);
+      await pickUpReport(report.id, proofUrl, paypalLink);
       onSuccess();
     } catch (err) {
       console.error(err);
@@ -78,14 +88,11 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
     if (!paypalInfo) return "";
     const cleanInfo = paypalInfo.trim();
     if (cleanInfo.startsWith("http")) {
-      // If it's already a full link
       return cleanInfo;
     }
     if (cleanInfo.includes("@")) {
-      // If it is a PayPal email
       return `https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=${encodeURIComponent(cleanInfo)}&currency_code=USD&amount=${amount}`;
     }
-    // If it's a paypal.me username
     return `https://paypal.me/${cleanInfo}/${amount}`;
   };
 
@@ -94,7 +101,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
     picked_up: "border-primary/20 bg-primary/10 text-primary",
   };
 
-  const isResolved = report.status === 'picked_up';
+  const isResolved = report.status === 'picked_up' || report.status === 'Cleaned';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto">
@@ -118,28 +125,28 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
           <div className="lg:col-span-6 space-y-6">
             {!isResolved ? (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Reported Litter Sighting</p>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('activeLitter')}</p>
                 <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950 relative">
                   <img src={report.imageUrl} alt={report.title} className="w-full h-full object-cover" />
                   <div className="absolute top-4 left-4 bg-red-500 text-black text-[9px] font-bold px-2.5 py-1 uppercase rounded-md shadow-md">
-                    Active Litter
+                    {t('activeLitter')}
                   </div>
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Before (Reported)</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('photoBeforeLabel')}</p>
                   <div className="aspect-[4/5] rounded-2xl overflow-hidden border border-zinc-800 bg-zinc-950">
                     <img src={report.imageUrl} alt="Before" className="w-full h-full object-cover" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">After (Picked Up Proof)</p>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{t('photoAfterLabel')}</p>
                   <div className="aspect-[4/5] rounded-2xl overflow-hidden border border-primary/30 bg-zinc-950 relative">
                     <img src={report.proofImageUrl} alt="After Proof" className="w-full h-full object-cover" />
                     <div className="absolute bottom-4 left-4 bg-primary text-black text-[9px] font-bold px-2.5 py-1 uppercase rounded-md shadow-md flex items-center gap-1">
-                      <CheckCircle2 size={10} /> Cleaned Up
+                      <CheckCircle2 size={10} /> {t('cleanedUp')}
                     </div>
                   </div>
                 </div>
@@ -148,7 +155,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
 
             {/* Location block */}
             <div className="bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800 space-y-2">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Approximate Location</p>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('approximateLocation')}</p>
               <p className="text-white text-xs font-bold leading-relaxed">{report.location?.address || 'Nearby / Undefined'}</p>
               {report.location?.lat && report.location?.lng && (
                 <p className="text-zinc-600 font-mono text-[10px]">
@@ -168,7 +175,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                     {report.category}
                   </span>
                   <span className={`text-[10px] font-black px-2.5 py-1 rounded-md border uppercase tracking-wider ${isResolved ? statusColors.picked_up : statusColors.reported}`}>
-                    {isResolved ? 'Cleaned / Solved' : 'Awaiting Cleanup'}
+                    {isResolved ? t('cleanedSolved') : t('awaitingCleanup')}
                   </span>
                   <span className="text-zinc-500 font-mono text-[10px] font-bold ml-auto">
                     SCORE: <span className="text-primary font-black">{report.impactScore}</span>
@@ -179,31 +186,31 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                   {report.title}
                 </h3>
                 <p className="text-zinc-400 text-sm leading-relaxed">
-                  {report.description || 'No description supplied by reporter.'}
+                  {report.description || t('noDescriptionSupplied')}
                 </p>
               </div>
 
               {/* Impact/Educational Tip */}
               <div className="bg-primary/5 border border-primary/25 rounded-2xl p-4 space-y-1">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Ecology Advisor Alert</p>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{t('ecologyAdviceLabel')}</p>
                 <p className="text-zinc-300 text-xs leading-relaxed">{report.educationalTip}</p>
               </div>
 
               {/* Profiles Section (Reporter and Resolver) */}
               <div className="space-y-4 border-t border-zinc-800/80 pt-6">
-                <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Involved Agents</h4>
+                <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{t('involvedAgents')}</h4>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Reporter Profile */}
                   <div className="bg-zinc-950/30 p-4 rounded-xl border border-zinc-800 space-y-3">
-                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Reporting Agent</p>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{t('reportingAgent')}</p>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
                         <User size={14} />
                       </div>
                       <div className="truncate">
-                        <p className="text-xs font-bold text-white truncate">{report.userName || 'Anonymous Agent'}</p>
-                        <p className="text-[9px] text-zinc-500 uppercase font-semibold">10 pts rewarded</p>
+                        <p className="text-xs font-bold text-white truncate">{report.userName || t('anonymousAgent')}</p>
+                        <p className="text-[9px] text-zinc-500 uppercase font-semibold">10 {t('pointsShort')} {t('points')}</p>
                       </div>
                     </div>
 
@@ -219,26 +226,26 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                           className="w-full py-2 bg-zinc-900 hover:bg-zinc-850 text-white hover:text-primary font-bold text-[9px] uppercase tracking-wide rounded-lg border border-zinc-800 hover:border-primary/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <DollarSign size={12} className="text-primary" />
-                          Tip Reporter via PayPal
+                          {t('tipReporter')}
                           <ExternalLink size={10} />
                         </a>
                       </div>
                     ) : (
-                      <p className="text-[9px] text-zinc-600 italic">Reporter hasn't linked PayPal yet.</p>
+                      <p className="text-[9px] text-zinc-650 italic">{t('reporterNoPaypal')}</p>
                     )}
                   </div>
 
                   {/* Resolver Profile (Only if Resolved) */}
                   {isResolved ? (
                     <div className="bg-zinc-950/30 p-4 rounded-xl border border-primary/20 space-y-3">
-                      <p className="text-[9px] font-bold text-primary uppercase tracking-widest">Resolver Agent</p>
+                      <p className="text-[9px] font-bold text-primary uppercase tracking-widest">{t('resolverAgent')}</p>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
                           <CheckCircle2 size={14} />
                         </div>
                         <div className="truncate">
-                          <p className="text-xs font-bold text-white truncate">{report.resolverName || 'Anonymous Agent'}</p>
-                          <p className="text-[9px] text-primary uppercase font-bold">50 pts rewarded</p>
+                          <p className="text-xs font-bold text-white truncate">{report.resolverName || t('anonymousAgent')}</p>
+                          <p className="text-[9px] text-primary uppercase font-bold">50 {t('pointsShort')} {t('points')}</p>
                         </div>
                       </div>
 
@@ -254,19 +261,19 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                             className="w-full py-2 bg-primary hover:bg-primary/90 text-black font-extrabold text-[9px] uppercase tracking-wide rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <DollarSign size={12} />
-                            Bounty Resolver via PayPal
+                            {t('bountyResolver')}
                             <ExternalLink size={10} />
                           </a>
                         </div>
                       ) : (
-                        <p className="text-[9px] text-zinc-600 italic">Resolver hasn't linked PayPal yet.</p>
+                        <p className="text-[9px] text-zinc-650 italic">{t('resolverNoPaypal')}</p>
                       )}
                     </div>
                   ) : (
                     <div className="bg-zinc-950/20 p-4 rounded-xl border border-dashed border-zinc-800 flex flex-col items-center justify-center text-center">
                       <AlertTriangle size={16} className="text-zinc-600 mb-1" />
-                      <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Awaiting Resolution</p>
-                      <p className="text-[8px] text-zinc-650 mt-0.5">Be the agent to pick up this litter.</p>
+                      <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">{t('awaitingResolution')}</p>
+                      <p className="text-[8px] text-zinc-650 mt-0.5">{t('beTheAgent')}</p>
                     </div>
                   )}
                 </div>
@@ -274,8 +281,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
 
               {/* PayPal Bounties Settings Dropdown (Only show if at least one PayPal link exists) */}
               {!loadingProfiles && (reporterProfile?.paypalLink || resolverProfile?.paypalLink) && (
-                <div className="flex items-center justify-between gap-4 bg-zinc-950/30 px-4 py-3 rounded-xl border border-zinc-800/60">
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Select PayPal Bounty Amount:</span>
+                <div className="flex items-center justify-between gap-4 bg-zinc-950/30 px-4 py-3 rounded-xl border border-zinc-800/60 font-mono text-sm">
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{t('selectBountyAmount')}</span>
                   <div className="flex gap-2">
                     {['2.00', '5.00', '10.00', '20.00'].map((amt) => (
                       <button
@@ -300,12 +307,29 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
               <div className="border-t border-zinc-800/80 pt-6 mt-6 space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <h4 className="text-sm font-bold text-white uppercase tracking-tight">Pick It Up!</h4>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Upload visual proof of disposal to claim 50 reward points.</p>
+                    <h4 className="text-sm font-bold text-white uppercase tracking-tight">{t('pickItUpLabel')}</h4>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">{t('disposalRewardLabel')}</p>
                   </div>
                   <div className="bg-primary/10 border border-primary/20 px-2 py-1 rounded text-[8px] font-bold text-primary uppercase">
-                    +50 PTS
+                    +50 {t('pointsShort')}
                   </div>
+                </div>
+
+                {/* PayPal Input block */}
+                <div className="bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800 space-y-2">
+                  <label className="block text-[10px] font-black text-primary uppercase tracking-widest font-mono">
+                    {t('yourPaypalLink')}
+                  </label>
+                  <input 
+                    type="text"
+                    value={paypalLink}
+                    onChange={(e) => setPaypalLink(e.target.value)}
+                    placeholder="e.g. paypal.me/yourusername or yourpaypalemail@domain.com"
+                    className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-xl focus:border-primary/50 outline-none text-white transition-all placeholder-zinc-650 text-xs"
+                  />
+                  <p className="text-[9px] text-zinc-500 uppercase tracking-wider leading-relaxed">
+                    {t('addingPaypalLink')}
+                  </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -334,7 +358,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                       className="w-full sm:w-auto px-6 py-4 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white font-bold uppercase text-[10px] rounded-xl border border-zinc-800 hover:border-zinc-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Camera size={14} className="text-primary" />
-                      Take/Select Photo Proof
+                      {t('takeSelectPhotoProof')}
                     </button>
                   )}
 
@@ -347,12 +371,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                       {uploading ? (
                         <>
                           <Loader2 size={14} className="animate-spin" />
-                          Uploading Proof...
+                          {t('uploadingProof')}
                         </>
                       ) : (
                         <>
                           <CheckCircle2 size={14} />
-                          Submit Disposal Proof
+                          {t('submitDisposalProof')}
                         </>
                       )}
                     </button>

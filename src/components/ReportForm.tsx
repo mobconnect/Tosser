@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { analyzeReport, createReport, generateImage, uploadImage } from '../lib/api';
 import { auth } from '../lib/firebase';
 import { cn } from '../lib/utils';
+import { useLanguage } from './LanguageContext';
 
 interface ReportData {
   category: string;
@@ -35,6 +36,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
   const [analysis, setAnalysis] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useLanguage();
 
   // Geospatial states
   const [selectedCity, setSelectedCity] = useState(POPULAR_CITIES[0].name);
@@ -149,22 +151,22 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-8">
+    <div className="max-w-xl mx-auto space-y-8 bg-zinc-950">
       {!image ? (
         <div className="space-y-6">
           <div 
             onClick={() => fileInputRef.current?.click()}
             className="aspect-square border border-zinc-800 bg-zinc-900/50 flex flex-col items-center justify-center gap-6 cursor-pointer hover:bg-primary/5 transition-all group relative overflow-hidden rounded-3xl"
           >
-            <div className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+            <div className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-wider text-zinc-500 font-mono">
               Evidence Collection
             </div>
             <div className="w-20 h-20 rounded-2xl bg-zinc-800 border border-zinc-700 flex items-center justify-center group-hover:scale-110 transition-transform text-white/50 group-hover:text-primary transition-all">
               <Camera size={40} />
             </div>
             <div className="text-center px-8">
-              <p className="text-xl font-bold tracking-tight mb-2">Upload Proof</p>
-              <p className="text-xs text-zinc-500 px-10 leading-relaxed italic">Tap to upload a photo of environmental neglect</p>
+              <p className="text-xl font-bold tracking-tight mb-2">{t('uploadLitterPhoto')}</p>
+              <p className="text-xs text-zinc-500 px-10 leading-relaxed italic">{t('uploadPhotoDesc')}</p>
             </div>
             <input 
               type="file" 
@@ -177,23 +179,23 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
 
           <div className="relative py-4">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-800/50" /></div>
-            <div className="relative flex justify-center"><span className="bg-zinc-900 px-4 text-[10px] text-zinc-500 uppercase tracking-widest font-bold">or generate depiction</span></div>
+            <div className="relative flex justify-center"><span className="bg-zinc-950 px-4 text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{t('orLabel')}</span></div>
           </div>
 
           <div className="space-y-4">
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what you spotted in detail..."
+              placeholder={t('descriptionPlaceholder')}
               className="w-full bg-zinc-900/50 border border-zinc-800 text-white p-6 rounded-2xl min-h-[120px] focus:border-primary/50 outline-none transition-all text-sm leading-relaxed"
             />
             <button
               onClick={handleGenerateDepiction}
               disabled={isGenerating || !description}
-              className="w-full flex items-center justify-center gap-3 bg-zinc-800 text-primary py-3 px-6 font-bold uppercase text-xs rounded-xl border border-zinc-700 hover:border-primary transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 bg-zinc-800 text-primary py-3 px-6 font-bold uppercase text-xs rounded-xl border border-zinc-700 hover:border-primary transition-all disabled:opacity-50 cursor-pointer"
             >
               {isGenerating ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-              AI Create Visual
+              {t('generateDepiction')}
             </button>
           </div>
         </div>
@@ -203,7 +205,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
             <img src={image} alt="Report" className="w-full h-full object-cover" />
             <button 
               onClick={() => setImage(null)}
-              className="absolute top-4 right-4 bg-zinc-900/80 backdrop-blur-md text-white p-2 px-4 rounded-full border border-white/10 font-bold uppercase text-[10px] transition-all"
+              className="absolute top-4 right-4 bg-zinc-900/80 backdrop-blur-md text-white p-2 px-4 rounded-full border border-white/10 font-bold uppercase text-[10px] transition-all cursor-pointer"
             >
               Clear
             </button>
@@ -214,7 +216,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What did you spot? Where is it? Be specific."
+              placeholder={t('descriptionPlaceholder')}
               className="w-full bg-zinc-900/50 border border-zinc-800 text-white p-6 rounded-2xl min-h-[100px] focus:border-primary/50 outline-none transition-all text-sm leading-relaxed"
             />
           </div>
@@ -224,13 +226,13 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
               <button
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
-                className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 font-bold uppercase text-sm rounded-xl transition-all disabled:opacity-50 group shadow-xl"
+                className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 px-6 font-bold uppercase text-sm rounded-xl transition-all disabled:opacity-50 group shadow-xl cursor-pointer"
               >
                 {isAnalyzing ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : (
                   <>
-                    Analyze with Gemini Intelligence
+                    {t('analyzeLitter')}
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -264,7 +266,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                       <AlertTriangle size={20} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Impact Insight</p>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{t('ecologyTip')}</p>
                       <p className="text-zinc-300 text-sm leading-relaxed">
                         {analysis.educationalTip}
                       </p>
@@ -276,7 +278,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                 <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-3xl space-y-4">
                   <div>
                     <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
-                      <MapPin size={14} className="text-primary animate-pulse" /> Location Coordinates Anchor
+                      <MapPin size={14} className="text-primary animate-pulse" /> {t('selectCityLabel')}
                     </h4>
                     <p className="text-[10px] text-zinc-500 mt-1">Anchor your report globally so peers can spot the issue on our live radar map.</p>
                   </div>
@@ -287,7 +289,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                       onChange={(e) => handleCityChange(e.target.value)}
                       className="bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-primary/50 flex-1 cursor-pointer"
                     >
-                      {selectedCity === 'GPS' && <option value="GPS">My Latitude/Longitude (GPS)</option>}
+                      {selectedCity === 'GPS' && <option value="GPS">{t('currentLocationGps')}</option>}
                       {POPULAR_CITIES.map((c) => (
                         <option key={c.name} value={c.name}>
                           {c.name} ({c.lat.toFixed(2)}, {c.lng.toFixed(2)})
@@ -307,12 +309,12 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                     >
                       {locationStatus === 'detecting' ? (
                         <>
-                          <Loader2 size={13} className="animate-spin" /> Fetching GPS...
+                          <Loader2 size={13} className="animate-spin" /> {t('detectingGps')}
                         </>
                       ) : locationStatus === 'success' ? (
-                        <>Detected Location!</>
+                        <>{t('gpsActive')}</>
                       ) : (
-                        <>Detect My Location</>
+                        <>{t('detectLocation')}</>
                       )}
                     </button>
                   </div>
@@ -329,7 +331,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                   className="w-full flex items-center justify-center gap-3 bg-primary text-black py-4 px-6 font-bold uppercase text-base rounded-xl transition-all disabled:opacity-50 shadow-xl cursor-pointer"
                 >
                   {loading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-                  Submit Intelligence Log
+                  {t('submitReport')}
                 </button>
               </motion.div>
             )}
