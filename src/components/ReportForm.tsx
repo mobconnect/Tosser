@@ -30,6 +30,7 @@ const POPULAR_CITIES = [
 
 export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const [image, setImage] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -48,6 +49,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setFileName(file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result as string);
@@ -77,6 +79,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
     try {
       const generatedUrl = await generateImage(description);
       setImage(generatedUrl);
+      setFileName("AI_Generated_Depiction.png");
       setAnalysis(null);
     } catch (error) {
       console.error(error);
@@ -139,6 +142,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
         location: { lat, lng, address },
       });
       setImage(null);
+      setFileName(null);
       setDescription('');
       setAnalysis(null);
       onSuccess();
@@ -204,7 +208,7 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
           <div className="relative aspect-[4/3] border border-zinc-800 rounded-3xl overflow-hidden">
             <img src={image} alt="Report" className="w-full h-full object-cover" />
             <button 
-              onClick={() => setImage(null)}
+              onClick={() => { setImage(null); setFileName(null); setAnalysis(null); }}
               className="absolute top-4 right-4 bg-zinc-900/80 backdrop-blur-md text-white p-2 px-4 rounded-full border border-white/10 font-bold uppercase text-[10px] transition-all cursor-pointer"
             >
               Clear
@@ -322,6 +326,21 @@ export const ReportForm: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) =
                   <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/60 text-[10px] font-mono text-zinc-500 flex justify-between">
                     <span>LAT: {lat.toFixed(6)}</span>
                     <span>LNG: {lng.toFixed(6)}</span>
+                  </div>
+                </div>
+
+                {/* Real-time Image Thumbnail Preview Card */}
+                <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-3xl flex items-center gap-4 relative overflow-hidden">
+                  <div className="absolute top-2 right-3 text-[8px] font-mono text-zinc-600 font-bold uppercase tracking-wider">
+                    Ready to Upload
+                  </div>
+                  <div className="w-16 h-16 rounded-xl border border-zinc-800 overflow-hidden shrink-0 bg-zinc-950">
+                    <img src={image} alt="Thumbnail Verification" className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest font-mono">Real-time Verification Preview</p>
+                    <p className="text-white text-xs font-bold truncate mt-1">{fileName || "sighting_evidence.png"}</p>
+                    <p className="text-[9px] text-primary/80 font-bold mt-1 uppercase tracking-wider">Confirmed & Bound</p>
                   </div>
                 </div>
 

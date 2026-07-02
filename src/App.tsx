@@ -16,14 +16,17 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { Leaf, Camera, LayoutGrid, GraduationCap, MapPin, User as UserIcon, Trophy, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
+import { COUNTRIES } from './lib/countries';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'leaderboard'>('feed');
   const [reports, setReports] = useState<any[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
   const [userPoints, setUserPoints] = useState(0);
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, country, setCountry, t } = useLanguage();
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isCountryMenuOpen, setIsCountryMenuOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
 
   useEffect(() => {
     const unsubscribe = subscribeToReports((data) => {
@@ -57,6 +60,68 @@ function AppContent() {
         
         <div className="flex flex-col md:items-end gap-3 w-full md:w-auto">
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-3 self-center md:self-end">
+            {/* Country Selector Selector dropdown */}
+            <div className="relative z-40">
+              <button
+                onClick={() => setIsCountryMenuOpen(!isCountryMenuOpen)}
+                className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <MapPin size={13} className="text-primary" />
+                <span>{COUNTRIES.find(c => c.code === country)?.flag} {COUNTRIES.find(c => c.code === country)?.name}</span>
+              </button>
+              
+              <AnimatePresence>
+                {isCountryMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => { setIsCountryMenuOpen(false); setCountrySearch(''); }} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 5, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                      className="absolute right-0 mt-2 w-64 max-h-80 overflow-hidden bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl z-20 flex flex-col"
+                    >
+                      {/* Search Bar inside Country dropdown */}
+                      <div className="p-2 border-b border-zinc-800 sticky top-0 bg-zinc-900">
+                        <input
+                          type="text"
+                          placeholder="Search country..."
+                          value={countrySearch}
+                          onChange={(e) => setCountrySearch(e.target.value)}
+                          className="w-full bg-zinc-950 border border-zinc-800 px-3 py-1.5 rounded-xl text-xs text-white outline-none focus:border-primary/50"
+                        />
+                      </div>
+                      
+                      {/* Country Options list */}
+                      <div className="overflow-y-auto p-2 space-y-1 flex-1 max-h-56">
+                        {COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase())).map((c) => (
+                          <button
+                            key={c.code}
+                            onClick={() => {
+                              setCountry(c.code);
+                              setIsCountryMenuOpen(false);
+                              setCountrySearch('');
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer",
+                              country === c.code 
+                                ? "bg-primary/10 text-primary" 
+                                : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className="text-base">{c.flag}</span>
+                              <span className="truncate max-w-[140px]">{c.name}</span>
+                            </span>
+                            {country === c.code && <span className="text-[10px] uppercase tracking-widest font-black shrink-0">Active</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Language Selector Selector dropdown */}
             <div className="relative z-40">
               <button

@@ -5,12 +5,13 @@ import { subscribeToUser, updateUserProfile } from '../lib/api';
 import { User, Save, Loader2, User as UserIcon, LogOut, Flame, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from './LanguageContext';
+import { COUNTRIES } from '../lib/countries';
 
 export const ProfileView: React.FC = () => {
   const [userData, setUserData] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { t } = useLanguage();
+  const { country, setCountry, t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -105,6 +106,13 @@ export const ProfileView: React.FC = () => {
                       userData.identity === 'like' ? "text-primary border-primary/20 bg-primary/10" : "text-red-500 border-red-500/20 bg-red-500/10"
                     )}>
                       {userData.identity === 'like' ? 'LIKE' : userData.identity === 'dislike' ? 'DISLIKE' : 'Undefined'}
+                    </div>
+                  </div>
+                  <div className="md:col-span-2 space-y-1 bg-zinc-950/35 p-3 rounded-2xl border border-zinc-800/40">
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Country / Region</p>
+                    <div className="text-sm font-bold text-white flex items-center gap-2 mt-1">
+                      <span className="text-xl">{COUNTRIES.find(c => c.code === country)?.flag}</span>
+                      <span>{COUNTRIES.find(c => c.code === country)?.name}</span>
                     </div>
                   </div>
                   <div className="md:col-span-2 space-y-1">
@@ -229,6 +237,20 @@ export const ProfileView: React.FC = () => {
                         <option value="other">Other</option>
                       </select>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 font-mono text-primary">Active Country / Region</label>
+                    <select 
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl focus:border-primary/50 outline-none text-white transition-all text-sm text-zinc-300"
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.flag} {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-2 font-mono text-primary">{t('yourPaypalLink')}</label>
