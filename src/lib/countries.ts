@@ -14,7 +14,7 @@ export const COUNTRIES: CountryInfo[] = [
   { code: 'AG', name: 'Antigua and Barbuda', flag: '🇦🇬', lang: 'en' },
   { code: 'AR', name: 'Argentina', flag: '🇦🇷', lang: 'es' },
   { code: 'AM', name: 'Armenia', flag: '🇦🇲', lang: 'en' },
-  { code: 'AU', name: 'Australia', flag: '🇦🇺', lang: 'en' },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺 🖤💛❤️', lang: 'en' },
   { code: 'AT', name: 'Austria', flag: '🇦🇹', lang: 'de' },
   { code: 'AZ', name: 'Azerbaijan', flag: '🇦🇿', lang: 'en' },
   { code: 'BS', name: 'Bahamas', flag: '🇧🇸', lang: 'en' },
