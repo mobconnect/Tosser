@@ -45,6 +45,19 @@ export const ReportFeed: React.FC<{ reports: Report[]; loading?: boolean }> = ({
   const [showExpired, setShowExpired] = useState(false);
   const { t } = useLanguage();
 
+  React.useEffect(() => {
+    if (reports && reports.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const reportId = params.get('reportId');
+      if (reportId) {
+        const found = reports.find(r => r.id === reportId);
+        if (found) {
+          setSelectedReport(found);
+        }
+      }
+    }
+  }, [reports]);
+
   const isReportExpired = (report: Report) => {
     if (report.status !== 'Cleaned' && report.status !== 'picked_up') {
       return false;

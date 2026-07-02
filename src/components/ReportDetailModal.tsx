@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
-import { X, Camera, CheckCircle2, DollarSign, ExternalLink, Sparkles, User, AlertTriangle, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, Camera, CheckCircle2, DollarSign, ExternalLink, Sparkles, User, AlertTriangle, Image as ImageIcon, Loader2, QrCode, Printer, Download } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { uploadImage, pickUpReport, getUserProfile } from '../lib/api';
 import { useLanguage } from './LanguageContext';
+import QRCode from 'qrcode';
 
 interface ReportDetailModalProps {
   report: any;
@@ -103,6 +104,52 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
 
   const isResolved = report.status === 'picked_up' || report.status === 'Cleaned';
 
+  const paypalTarget = isResolved 
+    ? (resolverProfile?.paypalLink || '') 
+    : (reporterProfile?.paypalLink || '');
+    
+  const hasPaypal = !!paypalTarget.trim();
+
+  // QR & Poster Kit State
+  const [showQrKit, setShowQrKit] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrType, setQrType] = useState<'app' | 'paypal'>('app');
+
+  useEffect(() => {
+    const encodeValue = qrType === 'paypal' && paypalTarget.trim()
+      ? getPaypalHref(paypalTarget, donationAmount)
+      : `${window.location.origin}/?reportId=${report.id}`;
+
+    QRCode.toDataURL(encodeValue, {
+      margin: 1,
+      width: 400,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
+    })
+    .then(url => {
+      setQrCodeUrl(url);
+    })
+    .catch(err => {
+      console.error("Failed to generate QR code", err);
+    });
+  }, [qrType, report.id, reporterProfile, resolverProfile, donationAmount, paypalTarget]);
+
+  const downloadQrCode = () => {
+    if (!qrCodeUrl) return;
+    const a = document.createElement('a');
+    a.href = qrCodeUrl;
+    a.download = `tosser-sighting-${report.id}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto">
       <motion.div 
@@ -188,6 +235,17 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                 <p className="text-zinc-400 text-sm leading-relaxed">
                   {report.description || t('noDescriptionSupplied')}
                 </p>
+
+                {/* QR Code & Poster Kit Trigger Button */}
+                <div className="flex flex-wrap gap-2 pt-1.5">
+                  <button
+                    onClick={() => setShowQrKit(true)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/40 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 select-none"
+                  >
+                    <QrCode size={13} />
+                    <span>QR Code & Poster Kit</span>
+                  </button>
+                </div>
               </div>
 
               {/* Impact/Educational Tip */}
@@ -386,6 +444,223 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
             )}
           </div>
         </div>
+
+        {/* Style tag specifically for printing layout */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body {
+              background-color: white !important;
+              color: black !important;
+              font-family: system-ui, -apple-system, sans-serif !important;
+            }
+            #root, header, main, footer, nav, .fixed, .absolute, [role="dialog"], .bg-black {
+              display: none !important;
+              visibility: hidden !important;
+            }
+            .printable-poster {
+              display: flex !important;
+              visibility: visible !important;
+              position: fixed !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100vw !important;
+              height: 100vh !important;
+              background: white !important;
+              color: black !important;
+              z-index: 9999999 !important;
+              padding: 40px !important;
+              box-sizing: border-box !important;
+              flex-direction: column !important;
+              justify-content: space-between !important;
+              align-items: center !important;
+              text-align: center !important;
+            }
+            .printable-poster * {
+              display: block !important;
+              visibility: visible !important;
+            }
+          }
+        ` }} />
+
+        {/* Printable Poster Elements (hidden on screen, only visible via @media print) */}
+        <div className="hidden printable-poster bg-white text-black p-12 min-h-screen flex flex-col justify-between items-center text-center">
+          <div style={{ border: '8px double black', padding: '2.5rem', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
+            
+            <div className="space-y-4">
+              <div style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#666' }}>
+                ENVIRONMENTAL RESISTANCE FLYER
+              </div>
+              <h1 style={{ fontSize: '48px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: '1', margin: '15px 0', color: '#000000' }}>
+                LITTER FLAGGED
+              </h1>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em', background: '#000000', color: '#ffffff', padding: '6px 20px', display: 'inline-block' }}>
+                {report.category || 'GENERAL WASTE'}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '40px', alignItems: 'center', margin: '40px 0', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {qrCodeUrl && (
+                <img src={qrCodeUrl} alt="QR Code" style={{ width: '220px', height: '220px', border: '3px solid black', padding: '5px', background: 'white' }} />
+              )}
+              <div style={{ textAlign: 'left', maxWidth: '380px' }} className="space-y-3">
+                <h2 style={{ fontSize: '26px', fontWeight: '900', textTransform: 'uppercase', color: '#000000', margin: '0 0 10px 0' }}>
+                  {report.title}
+                </h2>
+                <p style={{ fontSize: '14px', color: '#333333', lineHeight: '1.5', margin: '0 0 10px 0' }}>
+                  {report.description || 'Reported litter sighting awaiting community clean-up.'}
+                </p>
+                <div style={{ fontSize: '12px', color: '#555555', fontFamily: 'monospace', lineHeight: '1.4' }}>
+                  📍 {report.location?.address || 'Report Location'}<br/>
+                  Coords: {report.location?.lat?.toFixed(6)}, {report.location?.lng?.toFixed(6)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ width: '100%' }}>
+              <div style={{ borderTop: '2px dashed black', paddingTop: '20px', width: '100%', margin: '0 auto 20px auto' }} />
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#000000', margin: '0 0 10px 0' }}>
+                SCAN TO INTERACT & HELP
+              </h3>
+              <p style={{ fontSize: '13px', color: '#444444', maxWidth: '520px', margin: '0 auto', lineHeight: '1.6' }}>
+                Scan this code with your phone camera to open this report in the <strong>Tosser</strong> app.
+                You can upload clean-up proof to earn reward points, or send a secure tip via PayPal to support local environmental efforts!
+              </p>
+              
+              {qrType === 'paypal' && hasPaypal && (
+                <div style={{ marginTop: '20px', background: '#f4f4f5', padding: '14px', border: '1px dashed #000000', borderRadius: '8px', display: 'inline-block' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', color: '#000000', margin: 0 }}>
+                    Direct PayPal Support Enabled
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#555555', margin: '2px 0 0 0' }}>
+                    Tips scan directly to: <strong>{paypalTarget}</strong>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{ fontSize: '10px', color: '#888888', fontFamily: 'monospace', marginTop: '40px', letterSpacing: '0.1em' }}>
+              GENERATED VIA TOSSER — ACTION = IMPACT
+            </div>
+          </div>
+        </div>
+
+        {/* QR Code & Poster Kit Overlay Overlay */}
+        <AnimatePresence>
+          {showQrKit && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col items-center justify-center p-6 md:p-8"
+            >
+              <button
+                onClick={() => setShowQrKit(false)}
+                className="absolute top-6 right-6 p-2 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-full border border-zinc-800 transition-all z-50 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-6 rounded-3xl space-y-6 text-center max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div>
+                  <h3 className="text-xl font-bold uppercase tracking-tight text-white flex items-center justify-center gap-2">
+                    <QrCode className="text-primary" size={20} />
+                    Sighting QR & Poster Kit
+                  </h3>
+                  <p className="text-[10px] text-zinc-500 font-mono mt-1 uppercase tracking-wider">
+                    Print or display at site to recruit other agents
+                  </p>
+                </div>
+
+                {/* QR Code Image */}
+                <div className="bg-white p-4 rounded-2xl inline-block mx-auto border-4 border-zinc-800 shadow-xl">
+                  {qrCodeUrl ? (
+                    <img src={qrCodeUrl} alt="Sighting QR Code" className="w-48 h-48 block" />
+                  ) : (
+                    <div className="w-48 h-48 flex items-center justify-center text-zinc-400 font-mono text-xs">
+                      Generating...
+                    </div>
+                  )}
+                </div>
+
+                {/* Scan Type Configuration */}
+                <div className="bg-zinc-950/40 p-4 rounded-2xl border border-zinc-800 text-left space-y-3">
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest block">
+                    Choose Scan Action Target:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQrType('app')}
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+                        qrType === 'app'
+                          ? 'bg-primary/10 border-primary text-primary'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="uppercase font-black tracking-wider text-[10px]">App Sighting</span>
+                      <span className="text-[9px] font-normal text-zinc-500">Scan to View/Clean</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setQrType('paypal')}
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-center flex flex-col items-center gap-1 cursor-pointer ${
+                        qrType === 'paypal'
+                          ? 'bg-primary/10 border-primary text-primary'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="uppercase font-black tracking-wider text-[10px]">Direct PayPal</span>
+                      <span className="text-[9px] font-normal text-zinc-500">Scan to Tip Agent</span>
+                    </button>
+                  </div>
+
+                  {qrType === 'paypal' && (
+                    <div className="text-[10px] text-zinc-400 leading-relaxed font-mono p-2 bg-zinc-900/60 rounded-xl border border-zinc-800">
+                      {hasPaypal ? (
+                        <p className="text-emerald-400">
+                          ✓ Linked PayPal detected: <strong className="break-all">{paypalTarget}</strong>
+                        </p>
+                      ) : (
+                        <p className="text-amber-500">
+                          ⚠ Warning: No linked PayPal detected. Scanning will fall back to Interactive App Page. Set PayPal in Profile!
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Kit Action Buttons */}
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    onClick={handlePrint}
+                    className="w-full py-3 bg-primary text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all hover:bg-primary/90 flex items-center justify-center gap-1.5 cursor-pointer shadow-xl"
+                  >
+                    <Printer size={14} />
+                    Print 8.5x11 Poster Sighting
+                  </button>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={downloadQrCode}
+                      className="py-2.5 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl border border-zinc-800 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      Download QR
+                    </button>
+
+                    <button
+                      onClick={() => setShowQrKit(false)}
+                      className="py-2.5 bg-zinc-800 hover:bg-zinc-750 text-zinc-400 hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center cursor-pointer"
+                    >
+                      Back to Sighting
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

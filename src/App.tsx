@@ -17,6 +17,7 @@ import { Leaf, Camera, LayoutGrid, GraduationCap, MapPin, User as UserIcon, Trop
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from './lib/utils';
 import { COUNTRIES } from './lib/countries';
+import { PaypalQrWidget } from './components/PaypalQrWidget';
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState<'feed' | 'profile' | 'leaderboard'>('feed');
@@ -271,6 +272,9 @@ function AppContent() {
           </button>
         ))}
       </nav>
+
+      {/* Floating PayPal Tip Jar QR Code & Offline Indicator Widget */}
+      <PaypalQrWidget />
     </div>
   );
 }
